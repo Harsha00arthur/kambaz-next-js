@@ -1,0 +1,7 @@
+#wd-account-navigation .list-group-item.active {
+  border: none;                 
+  font-weight: 500;             
+  color: black !important;      
+  background-color: transparent; 
+  border-left: 3px solid black;  
+}
