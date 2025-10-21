@@ -1,11 +1,33 @@
 "use client";
 import { Button, Form } from "react-bootstrap";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import * as db from "../../../../Database";
 
 export default function AssignmentEditor() {
+  const { cid, aid } = useParams<{ cid: string; aid: string }>();
+
+  // ✅ Use the richer dataset with description, points, and dates
+  const assignment = db.assignmentsEditor.find(
+    (a: {
+      _id: string;
+      title: string;
+      course: string;
+      description?: string;
+      points?: number;
+      dueDate?: string;
+      availableFromDate?: string;
+      availableUntilDate?: string;
+    }) => a._id === aid
+  );
+
+  if (!assignment) {
+    return <div>Assignment not found.</div>;
+  }
+
   return (
     <div id="wd-assignments-editor">
       <Form>
-
         {/* Assignment Name */}
         <div className="mb-3 row">
           <label htmlFor="wd-name" className="form-label">
@@ -15,7 +37,7 @@ export default function AssignmentEditor() {
             <input
               type="text"
               id="wd-name"
-              defaultValue="A1 - ENV + HTML"
+              defaultValue={assignment.title}
               className="form-control"
             />
           </div>
@@ -30,7 +52,7 @@ export default function AssignmentEditor() {
             <textarea
               id="wd-description"
               rows={6}
-              defaultValue="The assignment is available online Submit a link to the landing page of your web application running on netlify. The landing should include the following : Your full name and section links to each of thr lab assignments, link to the kanbas application"
+              defaultValue={assignment.description}
               className="form-control"
             ></textarea>
           </div>
@@ -45,7 +67,7 @@ export default function AssignmentEditor() {
             <input
               type="number"
               id="wd-points"
-              defaultValue={100}
+              defaultValue={assignment.points}
               className="form-control"
             />
           </div>
@@ -132,7 +154,7 @@ export default function AssignmentEditor() {
             <input
               type="date"
               id="wd-due-date"
-              defaultValue="2020-10-15"
+              defaultValue={assignment.dueDate}
               className="form-control"
             />
           </div>
@@ -147,7 +169,7 @@ export default function AssignmentEditor() {
             <input
               type="date"
               id="wd-available-from"
-              defaultValue="2025-10-10"
+              defaultValue={assignment.availableFromDate}
               className="form-control"
             />
           </div>
@@ -159,7 +181,7 @@ export default function AssignmentEditor() {
             <input
               type="date"
               id="wd-available-until"
-              defaultValue="2025-10-20"
+              defaultValue={assignment.availableUntilDate}
               className="form-control"
             />
           </div>
@@ -167,8 +189,12 @@ export default function AssignmentEditor() {
 
         {/* Buttons */}
         <div className="d-flex justify-content-end gap-2">
-          <Button variant="secondary">Cancel</Button>
-          <Button variant="danger">Save</Button>
+          <Link href={`/Courses/${cid}/Assignments`}>
+            <Button variant="secondary">Cancel</Button>
+          </Link>
+          <Link href={`/Courses/${cid}/Assignments`}>
+            <Button variant="danger">Save</Button>
+          </Link>
         </div>
       </Form>
     </div>

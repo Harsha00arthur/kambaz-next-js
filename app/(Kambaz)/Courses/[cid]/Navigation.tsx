@@ -2,49 +2,55 @@
 
 import Link from "next/link";
 import { ListGroup } from "react-bootstrap";
+import { usePathname } from "next/navigation";
 
-export default function CourseNavigation() {
+interface CourseNavigationProps {
+  cid: string; 
+}
+
+export default function CourseNavigation({ cid }: CourseNavigationProps) {
+  const pathname = usePathname();
+
+  const links = [
+    { label: "Home", path: `/Courses/${cid}/Home` },
+    { label: "Modules", path: `/Courses/${cid}/Modules` },
+    { label: "Piazza", path: "https://piazza.com/northeastern", external: true },
+    { label: "Zoom", path: "https://www.zoom.com/", external: true },
+    { label: "Assignments", path: `/Courses/${cid}/Assignments` },
+    { label: "Quizzes", path: "https://northeastern.instructure.com/courses/225988/quizzes", external: true },
+    { label: "Grades", path: "https://northeastern.instructure.com/courses/225988/grades", external: true },
+    { label: "People", path: `/Courses/${cid}/People/Table` },
+  ];
+
   return (
     <ListGroup id="wd-courses-navigation" className="wd list-group fs-5 rounded-0">
-      <ListGroup.Item action as={Link} href="/Courses/1234/Home" id="wd-course-home-link"
-        className="list-group-item active border-0">
-        Home
-      </ListGroup.Item>
+      {links.map((link) => {
+        const isActive = pathname === link.path || pathname.includes(link.label);
 
-      <ListGroup.Item action as={Link} href="/Courses/1234/Modules" id="wd-course-modules-link"
-        className="list-group-item text-danger border-0">
-        Modules
-      </ListGroup.Item>
-
-      <ListGroup.Item action as={Link} href="https://piazza.com/northeastern" id="wd-course-piazza-link"
-        className="list-group-item text-danger border-0">
-        Piazza
-      </ListGroup.Item>
-
-      <ListGroup.Item action as={Link} href="https://www.zoom.com/" id="wd-course-zoom-link"
-        className="list-group-item text-danger border-0">
-        Zoom
-      </ListGroup.Item>
-
-      <ListGroup.Item action as={Link} href="/Courses/1234/Assignments" id="wd-course-assignments-link"
-        className="list-group-item text-danger border-0">
-        Assignments
-      </ListGroup.Item>
-
-      <ListGroup.Item action as={Link} href="https://northeastern.instructure.com/courses/225988/quizzes" id="wd-course-quizzes-link"
-        className="list-group-item text-danger border-0">
-        Quizzes
-      </ListGroup.Item>
-
-      <ListGroup.Item action as={Link} href="https://northeastern.instructure.com/courses/225988/grades" id="wd-course-grades-link"
-        className="list-group-item text-danger border-0">
-        Grades
-      </ListGroup.Item>
-
-      <ListGroup.Item action as={Link} href="/Courses/1234/People/Table" id="wd-course-people-link"
-        className="list-group-item text-danger border-0">
-        People
-      </ListGroup.Item>
+        return link.external ? (
+          <ListGroup.Item
+            key={link.label}
+            action
+            as="a"
+            href={link.path}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`list-group-item ${isActive ? "active" : "text-danger"} border-0`}
+          >
+            {link.label}
+          </ListGroup.Item>
+        ) : (
+          <ListGroup.Item
+            key={link.label}
+            action
+            as={Link}
+            href={link.path}
+            className={`list-group-item ${isActive ? "active" : "text-danger"} border-0`}
+          >
+            {link.label}
+          </ListGroup.Item>
+        );
+      })}
     </ListGroup>
   );
 }
