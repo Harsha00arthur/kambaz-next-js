@@ -1,0 +1,92 @@
+[
+  {
+    "_id": "A101",
+    "title": "Propulsion Assignment",
+    "course": "RS101",
+    "description": "Analyze various rocket propulsion systems and compare their efficiency. Include thrust-to-weight ratio and specific impulse calculations.",
+    "points": 100,
+    "dueDate": "2025-10-25",
+    "availableFromDate": "2025-10-10",
+    "availableUntilDate": "2025-10-30"
+  },
+  {
+    "_id": "A102",
+    "title": "Combustion Analysis",
+    "course": "RS101",
+    "description": "Perform a combustion analysis of different fuel mixtures and evaluate their energy outputs. Submit your findings as a PDF report.",
+    "points": 90,
+    "dueDate": "2025-10-28",
+    "availableFromDate": "2025-10-12",
+    "availableUntilDate": "2025-10-31"
+  },
+  {
+    "_id": "A103",
+    "title": "Nozzle Design Project",
+    "course": "RS101",
+    "description": "Design and model an efficient rocket nozzle using computational tools. Provide both theoretical justification and simulation results.",
+    "points": 120,
+    "dueDate": "2025-11-05",
+    "availableFromDate": "2025-10-15",
+    "availableUntilDate": "2025-11-10"
+  },
+  {
+    "_id": "A201",
+    "title": "Aerodynamics Quiz",
+    "course": "RS102",
+    "description": "Short quiz on fluid dynamics and airfoil principles. Review Bernoulli’s theorem and lift/drag equations before attempting.",
+    "points": 50,
+    "dueDate": "2025-10-20",
+    "availableFromDate": "2025-10-05",
+    "availableUntilDate": "2025-10-25"
+  },
+  {
+    "_id": "A202",
+    "title": "Flow Analysis",
+    "course": "RS102",
+    "description": "Analyze laminar vs turbulent flow behavior using simulation software. Include flow velocity profiles and Reynolds number calculations.",
+    "points": 100,
+    "dueDate": "2025-10-27",
+    "availableFromDate": "2025-10-10",
+    "availableUntilDate": "2025-10-30"
+  },
+  {
+    "_id": "A203",
+    "title": "Heating Analysis",
+    "course": "RS102",
+    "description": "Evaluate heat transfer mechanisms over an aerodynamic surface at high velocity. Compare convective and conductive heat losses.",
+    "points": 100,
+    "dueDate": "2025-11-03",
+    "availableFromDate": "2025-10-15",
+    "availableUntilDate": "2025-11-07"
+  },
+  {
+    "_id": "A301",
+    "title": "Structural Design Task",
+    "course": "RS103",
+    "description": "Design a lightweight spacecraft structure capable of withstanding orbital launch stress. Include finite element analysis results.",
+    "points": 150,
+    "dueDate": "2025-11-10",
+    "availableFromDate": "2025-10-20",
+    "availableUntilDate": "2025-11-15"
+  },
+  {
+    "_id": "A302",
+    "title": "Orbital Calculations",
+    "course": "RS103",
+    "description": "Calculate orbital velocity, period, and delta-v requirements for a low Earth orbit mission. Submit both theoretical and numerical work.",
+    "points": 120,
+    "dueDate": "2025-11-17",
+    "availableFromDate": "2025-10-25",
+    "availableUntilDate": "2025-11-20"
+  },
+  {
+    "_id": "A303",
+    "title": "Systems Engineering Exam",
+    "course": "RS103",
+    "description": "Final exam covering spacecraft systems integration, control, and communication subsystems. Closed-book format.",
+    "points": 200,
+    "dueDate": "2025-11-25",
+    "availableFromDate": "2025-11-10",
+    "availableUntilDate": "2025-11-28"
+  }
+]
