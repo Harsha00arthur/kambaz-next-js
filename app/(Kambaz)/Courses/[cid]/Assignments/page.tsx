@@ -1,36 +1,63 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ListGroup, ListGroupItem, Badge } from "react-bootstrap";
-import { BsGripVertical } from "react-icons/bs";
-import * as db from "../../../Database"; // adjust the path if needed
+import { ListGroup, ListGroupItem, Badge, Button, Modal } from "react-bootstrap";
+import { BsGripVertical, BsTrash } from "react-icons/bs";
 import ModuleControlButtons from "../Modules/ModuleControlButtons";
 import LessonControlButtons from "../Modules/LessonControlButtons";
 import AssignmentsControls from "./AssignmentsControls";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState } from "../../../store";
+import { deleteAssignment } from "../Assignments/reducer";
+import { useState } from "react";
 
-type Assignment = {
+// ✅ Explicitly define Assignment type
+interface Assignment {
   _id: string;
   title: string;
   course: string;
   available?: string;
   due?: string;
   points?: number;
-};
+  availableFromDate?: string;
+  availableUntilDate?: string;
+  dueDate?: string;
+}
 
 export default function Assignments() {
-  const { cid } = useParams<{ cid: string }>(); 
-  const assignments = db.assignments.filter(
+  const { cid } = useParams<{ cid: string }>();
+  const dispatch = useDispatch();
+
+  // ✅ Strongly type assignments from Redux
+  const assignments = useSelector(
+    (state: RootState) => state.assignmentsReducer.assignments
+  ) as Assignment[];
+
+  const courseAssignments = assignments.filter(
     (a: Assignment) => a.course === cid
   );
 
+  // ✅ For confirmation dialog
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+
+  const handleDelete = (assignment: Assignment) => {
+    setSelectedAssignment(assignment);
+    setShowConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedAssignment) {
+      dispatch(deleteAssignment(selectedAssignment._id));
+    }
+    setShowConfirm(false);
+  };
+
   return (
     <div id="wd-assignments">
-      {/* Top bar: Search + Buttons */}
       <AssignmentsControls />
 
-      {/* Assignment Groups */}
       <ListGroup id="wd-assignment-groups" className="rounded-0">
-        {/* Assignment Group: Assignments 40% */}
         <ListGroupItem className="wd-assignment-group p-0 mb-4 border-gray">
           <div
             id="wd-assignments-title"
@@ -45,21 +72,22 @@ export default function Assignments() {
               <Badge bg="secondary" pill className="me-2">
                 40% of Total
               </Badge>
-              <ModuleControlButtons />
+              <ModuleControlButtons
+                moduleId={cid || ""}
+                deleteModule={() => {}}
+                editModule={() => {}}
+              />
             </div>
           </div>
 
-          {/* Assignment List */}
           <ListGroup id="wd-assignment-list" className="rounded-0">
-            {assignments.map((a) => (
+            {courseAssignments.map((a) => (
               <ListGroupItem
                 key={a._id}
-                as={Link}
-                href={`/Courses/${cid}/Assignments/${a._id}`}
                 action
-                className="wd-assignment-list-item p-3 ps-1 d-flex justify-content-between"
+                className="wd-assignment-list-item p-3 ps-1 d-flex justify-content-between align-items-center"
               >
-                <div>
+                <div className="flex-grow-1">
                   <BsGripVertical className="me-2 fs-3" />
                   <Link
                     href={`/Courses/${cid}/Assignments/${a._id}`}
@@ -69,16 +97,47 @@ export default function Assignments() {
                   </Link>
                   <p className="mb-0 text-muted small">
                     <span className="text-danger">Multiple modules</span> |{" "}
-                    <b>Not available until</b> May 6 at 12:00 am | <b>Due</b>{" "}
-                    May 13 at 11:59 pm | 100 pts
+                    <b>Not available until</b>{" "}
+                    {a.availableFromDate ?? "—"} | <b>Due</b>{" "}
+                    {a.dueDate ?? "—"} | {a.points ?? 0} pts
                   </p>
                 </div>
+
+                {/* ✅ Delete Button (Trash Icon) */}
+                <Button
+                  variant="outline-danger"
+                  size="sm"
+                  onClick={() => handleDelete(a)}
+                  className="ms-3"
+                >
+                  <BsTrash />
+                </Button>
+
                 <LessonControlButtons />
               </ListGroupItem>
             ))}
           </ListGroup>
         </ListGroupItem>
       </ListGroup>
+
+      {/* ✅ Confirmation Dialog */}
+      <Modal show={showConfirm} onHide={() => setShowConfirm(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Delete Assignment</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Are you sure you want to delete{" "}
+          <strong>{selectedAssignment?.title}</strong>?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowConfirm(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDelete}>
+            Yes, Delete
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

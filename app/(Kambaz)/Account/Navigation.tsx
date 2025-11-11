@@ -2,36 +2,40 @@
 
 import Link from "next/link";
 import { ListGroup } from "react-bootstrap";
+import { usePathname } from "next/navigation";
+import { useSelector } from "react-redux";
+import { RootState } from "../store";
 
 export default function AccountNavigation() {
+  const { currentUser } = useSelector((state: RootState) => state.accountReducer);
+  const links = currentUser ? ["Profile"] : ["Signin", "Signup"];
+
+  const pathname = usePathname();
+
   return (
     <ListGroup
       id="wd-account-navigation"
       className="wd list-group fs-5 rounded-0"
     >
-      <Link
-        href="Signin"
-        id="wd-signin-link"
-        className="list-group-item active border-0"
-      >
-        Signin
-      </Link>
+      {links.map((link) => {
+        const lower = link.toLowerCase();
+        const isActive = pathname.endsWith(lower);
 
-      <Link
-        href="Signup"
-        id="wd-signup-link"
-        className="list-group-item text-danger border-0"
-      >
-        Signup
-      </Link>
+        const linkId = `wd-${lower}-link`;
 
-      <Link
-        href="Profile"
-        id="wd-profile-link"
-        className="list-group-item text-danger border-0"
-      >
-        Profile
-      </Link>
+        return (
+          <Link
+            key={linkId}
+            href={link}
+            id={linkId}
+            className={`list-group-item border-0 ${
+              isActive ? "active" : "text-danger"
+            }`}
+          >
+            {link}
+          </Link>
+        );
+      })}
     </ListGroup>
   );
 }
