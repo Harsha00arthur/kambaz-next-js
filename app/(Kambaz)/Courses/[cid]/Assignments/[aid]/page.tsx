@@ -1,29 +1,74 @@
 "use client";
 import { Button, Form } from "react-bootstrap";
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import { addAssignment, updateAssignment } from "../../Assignments/reducer";
+import { RootState } from "../../../../store";
 import * as db from "../../../../Database";
+import { useState, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
+
+// ✅ Define assignment type
+type AssignmentType = {
+  _id: string;
+  title: string;
+  course: string;
+  description?: string;
+  points?: number;
+  dueDate?: string;
+  availableFromDate?: string;
+  availableUntilDate?: string;
+};
 
 export default function AssignmentEditor() {
   const { cid, aid } = useParams<{ cid: string; aid: string }>();
+  const router = useRouter();
+  const dispatch = useDispatch();
 
-  // ✅ Use the richer dataset with description, points, and dates
-  const assignment = db.assignmentsEditor.find(
-    (a: {
-      _id: string;
-      title: string;
-      course: string;
-      description?: string;
-      points?: number;
-      dueDate?: string;
-      availableFromDate?: string;
-      availableUntilDate?: string;
-    }) => a._id === aid
+  const { assignments } = useSelector(
+    (state: RootState) => state.assignmentsReducer
   );
 
-  if (!assignment) {
-    return <div>Assignment not found.</div>;
-  }
+  // ✅ Determine if editing or adding
+  const existingAssignment =
+    assignments.find((a) => a._id === aid) ||
+    (db.assignments.find(
+      (a: unknown) => (a as AssignmentType)._id === aid
+    ) as AssignmentType | undefined);
+
+  // ✅ Local editable state
+  const [assignment, setAssignment] = useState<AssignmentType>({
+    _id: existingAssignment?._id || uuidv4(),
+    title: existingAssignment?.title || "",
+    course: existingAssignment?.course || cid,
+    description: existingAssignment?.description || "",
+    points: existingAssignment?.points || 0,
+    dueDate: existingAssignment?.dueDate || "",
+    availableFromDate: existingAssignment?.availableFromDate || "",
+    availableUntilDate: existingAssignment?.availableUntilDate || "",
+  });
+
+  // ✅ Save handler
+  const handleSave = () => {
+    if (existingAssignment) {
+      dispatch(updateAssignment(assignment));
+    } else {
+      dispatch(addAssignment({ ...assignment, course: cid }));
+    }
+    router.push(`/Courses/${cid}/Assignments`);
+  };
+
+  // ✅ Cancel handler (no changes applied)
+  const handleCancel = () => {
+    router.push(`/Courses/${cid}/Assignments`);
+  };
+
+  // ✅ Sync state if existing assignment changes (optional safeguard)
+  useEffect(() => {
+    if (existingAssignment) {
+      setAssignment(existingAssignment);
+    }
+  }, [existingAssignment]);
 
   return (
     <div id="wd-assignments-editor">
@@ -37,7 +82,10 @@ export default function AssignmentEditor() {
             <input
               type="text"
               id="wd-name"
-              defaultValue={assignment.title}
+              value={assignment.title}
+              onChange={(e) =>
+                setAssignment({ ...assignment, title: e.target.value })
+              }
               className="form-control"
             />
           </div>
@@ -52,7 +100,10 @@ export default function AssignmentEditor() {
             <textarea
               id="wd-description"
               rows={6}
-              defaultValue={assignment.description}
+              value={assignment.description}
+              onChange={(e) =>
+                setAssignment({ ...assignment, description: e.target.value })
+              }
               className="form-control"
             ></textarea>
           </div>
@@ -67,7 +118,13 @@ export default function AssignmentEditor() {
             <input
               type="number"
               id="wd-points"
-              defaultValue={assignment.points}
+              value={assignment.points}
+              onChange={(e) =>
+                setAssignment({
+                  ...assignment,
+                  points: Number(e.target.value),
+                })
+              }
               className="form-control"
             />
           </div>
@@ -87,7 +144,10 @@ export default function AssignmentEditor() {
 
         {/* Display Grades */}
         <div className="mb-3 row">
-          <label htmlFor="wd-display-grade-as" className="col-sm-2 col-form-label">
+          <label
+            htmlFor="wd-display-grade-as"
+            className="col-sm-2 col-form-label"
+          >
             Display Grades as
           </label>
           <div className="col-sm-10">
@@ -99,7 +159,10 @@ export default function AssignmentEditor() {
 
         {/* Submission Type */}
         <div className="mb-3 row">
-          <label htmlFor="wd-submission-type" className="col-sm-2 col-form-label">
+          <label
+            htmlFor="wd-submission-type"
+            className="col-sm-2 col-form-label"
+          >
             Submission Type
           </label>
           <div className="col-sm-10">
@@ -108,24 +171,70 @@ export default function AssignmentEditor() {
             </select>
             <p className="mt-2 mb-1">Online entry option</p>
             <div className="form-check">
-              <input type="checkbox" id="wd-text-entry" className="form-check-input" />
-              <label htmlFor="wd-text-entry" className="form-check-label">Text Entry</label>
+              <input
+                type="checkbox"
+                id="wd-text-entry"
+                className="form-check-input"
+              />
+              <label
+                htmlFor="wd-text-entry"
+                className="form-check-label"
+              >
+                Text Entry
+              </label>
             </div>
             <div className="form-check">
-              <input type="checkbox" id="wd-website-url" className="form-check-input" defaultChecked />
-              <label htmlFor="wd-website-url" className="form-check-label">Website URL</label>
+              <input
+                type="checkbox"
+                id="wd-website-url"
+                className="form-check-input"
+                defaultChecked
+              />
+              <label
+                htmlFor="wd-website-url"
+                className="form-check-label"
+              >
+                Website URL
+              </label>
             </div>
             <div className="form-check">
-              <input type="checkbox" id="wd-media-recordings" className="form-check-input" />
-              <label htmlFor="wd-media-recordings" className="form-check-label">Media Recordings</label>
+              <input
+                type="checkbox"
+                id="wd-media-recordings"
+                className="form-check-input"
+              />
+              <label
+                htmlFor="wd-media-recordings"
+                className="form-check-label"
+              >
+                Media Recordings
+              </label>
             </div>
             <div className="form-check">
-              <input type="checkbox" id="wd-student-annotation" className="form-check-input" />
-              <label htmlFor="wd-student-annotation" className="form-check-label">Student Annotation</label>
+              <input
+                type="checkbox"
+                id="wd-student-annotation"
+                className="form-check-input"
+              />
+              <label
+                htmlFor="wd-student-annotation"
+                className="form-check-label"
+              >
+                Student Annotation
+              </label>
             </div>
             <div className="form-check">
-              <input type="checkbox" id="wd-file-upload" className="form-check-input" />
-              <label htmlFor="wd-file-upload" className="form-check-label">File Upload</label>
+              <input
+                type="checkbox"
+                id="wd-file-upload"
+                className="form-check-input"
+              />
+              <label
+                htmlFor="wd-file-upload"
+                className="form-check-label"
+              >
+                File Upload
+              </label>
             </div>
           </div>
         </div>
@@ -139,7 +248,8 @@ export default function AssignmentEditor() {
             <input
               type="text"
               id="wd-assign-to"
-              defaultValue="Everyone"
+              value="Everyone"
+              readOnly
               className="form-control"
             />
           </div>
@@ -154,7 +264,10 @@ export default function AssignmentEditor() {
             <input
               type="date"
               id="wd-due-date"
-              defaultValue={assignment.dueDate}
+              value={assignment.dueDate}
+              onChange={(e) =>
+                setAssignment({ ...assignment, dueDate: e.target.value })
+              }
               className="form-control"
             />
           </div>
@@ -162,26 +275,44 @@ export default function AssignmentEditor() {
 
         {/* Available From & Until */}
         <div className="mb-3 row">
-          <label htmlFor="wd-available-from" className="col-sm-2 col-form-label">
+          <label
+            htmlFor="wd-available-from"
+            className="col-sm-2 col-form-label"
+          >
             Available from
           </label>
           <div className="col-sm-4">
             <input
               type="date"
               id="wd-available-from"
-              defaultValue={assignment.availableFromDate}
+              value={assignment.availableFromDate}
+              onChange={(e) =>
+                setAssignment({
+                  ...assignment,
+                  availableFromDate: e.target.value,
+                })
+              }
               className="form-control"
             />
           </div>
 
-          <label htmlFor="wd-available-until" className="col-sm-2 col-form-label">
+          <label
+            htmlFor="wd-available-until"
+            className="col-sm-2 col-form-label"
+          >
             Until
           </label>
           <div className="col-sm-4">
             <input
               type="date"
               id="wd-available-until"
-              defaultValue={assignment.availableUntilDate}
+              value={assignment.availableUntilDate}
+              onChange={(e) =>
+                setAssignment({
+                  ...assignment,
+                  availableUntilDate: e.target.value,
+                })
+              }
               className="form-control"
             />
           </div>
@@ -189,12 +320,12 @@ export default function AssignmentEditor() {
 
         {/* Buttons */}
         <div className="d-flex justify-content-end gap-2">
-          <Link href={`/Courses/${cid}/Assignments`}>
-            <Button variant="secondary">Cancel</Button>
-          </Link>
-          <Link href={`/Courses/${cid}/Assignments`}>
-            <Button variant="danger">Save</Button>
-          </Link>
+          <Button variant="secondary" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleSave}>
+            Save
+          </Button>
         </div>
       </Form>
     </div>
