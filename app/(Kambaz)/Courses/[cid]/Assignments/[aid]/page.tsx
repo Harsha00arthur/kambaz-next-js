@@ -2,13 +2,16 @@
 import { Button, Form } from "react-bootstrap";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
-import { addAssignment, updateAssignment } from "../../Assignments/reducer";
+import {
+  addAssignment,
+  updateAssignment as updateReduxAssignment,
+} from "../../Assignments/reducer";
 import { RootState } from "../../../../store";
-import * as db from "../../../../Database";
 import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-// ✅ Define assignment type
+import * as client from "../../Assignments/client";
+
 type AssignmentType = {
   _id: string;
   title: string;
@@ -29,14 +32,9 @@ export default function AssignmentEditor() {
     (state: RootState) => state.assignmentsReducer
   );
 
-  // ✅ Determine if editing or adding
   const existingAssignment =
-    assignments.find((a) => a._id === aid) ||
-    (db.assignments.find(
-      (a: unknown) => (a as AssignmentType)._id === aid
-    ) as AssignmentType | undefined);
+    assignments.find((a) => a._id === aid) || undefined;
 
-  // ✅ Local editable state
   const [assignment, setAssignment] = useState<AssignmentType>({
     _id: existingAssignment?._id || uuidv4(),
     title: existingAssignment?.title || "",
@@ -48,27 +46,35 @@ export default function AssignmentEditor() {
     availableUntilDate: existingAssignment?.availableUntilDate || "",
   });
 
-  // ✅ Save handler
-  const handleSave = () => {
-    if (existingAssignment) {
-      dispatch(updateAssignment(assignment));
-    } else {
-      dispatch(addAssignment({ ...assignment, course: cid }));
-    }
-    router.push(`/Courses/${cid}/Assignments`);
-  };
-
-  // ✅ Cancel handler (no changes applied)
-  const handleCancel = () => {
-    router.push(`/Courses/${cid}/Assignments`);
-  };
-
-  // ✅ Sync state if existing assignment changes (optional safeguard)
   useEffect(() => {
     if (existingAssignment) {
       setAssignment(existingAssignment);
     }
   }, [existingAssignment]);
+
+  const handleSave = async () => {
+    let saved;
+
+    if (existingAssignment) {
+      saved = await client.updateAssignment(assignment);
+      dispatch(updateReduxAssignment(saved));
+    } else {
+      const newAssignment = {
+        ...assignment,
+        _id: uuidv4(),
+        course: cid,
+      };
+
+      saved = await client.createAssignment(cid as string, newAssignment);
+      dispatch(addAssignment(saved));
+    }
+
+    router.push(`/Courses/${cid}/Assignments`);
+  };
+
+  const handleCancel = () => {
+    router.push(`/Courses/${cid}/Assignments`);
+  };
 
   return (
     <div id="wd-assignments-editor">
@@ -144,10 +150,7 @@ export default function AssignmentEditor() {
 
         {/* Display Grades */}
         <div className="mb-3 row">
-          <label
-            htmlFor="wd-display-grade-as"
-            className="col-sm-2 col-form-label"
-          >
+          <label htmlFor="wd-display-grade-as" className="col-sm-2 col-form-label">
             Display Grades as
           </label>
           <div className="col-sm-10">
@@ -159,83 +162,24 @@ export default function AssignmentEditor() {
 
         {/* Submission Type */}
         <div className="mb-3 row">
-          <label
-            htmlFor="wd-submission-type"
-            className="col-sm-2 col-form-label"
-          >
+          <label htmlFor="wd-submission-type" className="col-sm-2 col-form-label">
             Submission Type
           </label>
           <div className="col-sm-10">
             <select id="wd-submission-type" className="form-select">
               <option value="Online">Online</option>
             </select>
+
             <p className="mt-2 mb-1">Online entry option</p>
-            <div className="form-check">
-              <input
-                type="checkbox"
-                id="wd-text-entry"
-                className="form-check-input"
-              />
-              <label
-                htmlFor="wd-text-entry"
-                className="form-check-label"
-              >
-                Text Entry
-              </label>
-            </div>
-            <div className="form-check">
-              <input
-                type="checkbox"
-                id="wd-website-url"
-                className="form-check-input"
-                defaultChecked
-              />
-              <label
-                htmlFor="wd-website-url"
-                className="form-check-label"
-              >
-                Website URL
-              </label>
-            </div>
-            <div className="form-check">
-              <input
-                type="checkbox"
-                id="wd-media-recordings"
-                className="form-check-input"
-              />
-              <label
-                htmlFor="wd-media-recordings"
-                className="form-check-label"
-              >
-                Media Recordings
-              </label>
-            </div>
-            <div className="form-check">
-              <input
-                type="checkbox"
-                id="wd-student-annotation"
-                className="form-check-input"
-              />
-              <label
-                htmlFor="wd-student-annotation"
-                className="form-check-label"
-              >
-                Student Annotation
-              </label>
-            </div>
-            <div className="form-check">
-              <input
-                type="checkbox"
-                id="wd-file-upload"
-                className="form-check-input"
-              />
-              <label
-                htmlFor="wd-file-upload"
-                className="form-check-label"
-              >
-                File Upload
-              </label>
-            </div>
+
+            {[ "Text Entry", "Website URL", "Media Recordings", "Student Annotation", "File Upload" ].map((label, i) => (
+              <div className="form-check" key={i}>
+                <input className="form-check-input" type="checkbox" id={label} />
+                <label className="form-check-label" htmlFor={label}>
+                  {label}
+                </label>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -273,12 +217,9 @@ export default function AssignmentEditor() {
           </div>
         </div>
 
-        {/* Available From & Until */}
+        {/* Available Dates */}
         <div className="mb-3 row">
-          <label
-            htmlFor="wd-available-from"
-            className="col-sm-2 col-form-label"
-          >
+          <label htmlFor="wd-available-from" className="col-sm-2 col-form-label">
             Available from
           </label>
           <div className="col-sm-4">
@@ -296,10 +237,7 @@ export default function AssignmentEditor() {
             />
           </div>
 
-          <label
-            htmlFor="wd-available-until"
-            className="col-sm-2 col-form-label"
-          >
+          <label htmlFor="wd-available-until" className="col-sm-2 col-form-label">
             Until
           </label>
           <div className="col-sm-4">

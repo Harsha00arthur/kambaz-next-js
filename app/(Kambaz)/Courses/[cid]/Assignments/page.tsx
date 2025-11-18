@@ -6,12 +6,18 @@ import { BsGripVertical, BsTrash } from "react-icons/bs";
 import ModuleControlButtons from "../Modules/ModuleControlButtons";
 import LessonControlButtons from "../Modules/LessonControlButtons";
 import AssignmentsControls from "./AssignmentsControls";
+
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../../store";
-import { deleteAssignment } from "../Assignments/reducer";
-import { useState } from "react";
 
-// ✅ Explicitly define Assignment type
+import {
+  deleteAssignment,
+  setAssignments,
+} from "../Assignments/reducer";
+
+import * as client from "../Assignments/client";
+import { useState, useEffect } from "react";
+
 interface Assignment {
   _id: string;
   title: string;
@@ -28,26 +34,37 @@ export default function Assignments() {
   const { cid } = useParams<{ cid: string }>();
   const dispatch = useDispatch();
 
-  // ✅ Strongly type assignments from Redux
   const assignments = useSelector(
     (state: RootState) => state.assignmentsReducer.assignments
   ) as Assignment[];
 
-  const courseAssignments = assignments.filter(
-    (a: Assignment) => a.course === cid
-  );
+  const courseAssignments = assignments.filter((a) => a.course === cid);
 
-  // ✅ For confirmation dialog
   const [showConfirm, setShowConfirm] = useState(false);
-  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+  const [selectedAssignment, setSelectedAssignment] =
+    useState<Assignment | null>(null);
+
+  // ----------------------------------------------------
+  // Load assignments for THIS course
+  // ----------------------------------------------------
+  const loadAssignments = async () => {
+    if (!cid) return;
+    const data = await client.fetchAssignmentsByCourse(cid as string);
+    dispatch(setAssignments(data));
+  };
+
+  useEffect(() => {
+    loadAssignments();
+  }, [cid]);
 
   const handleDelete = (assignment: Assignment) => {
     setSelectedAssignment(assignment);
     setShowConfirm(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedAssignment) {
+      await client.deleteAssignment(selectedAssignment._id);
       dispatch(deleteAssignment(selectedAssignment._id));
     }
     setShowConfirm(false);
@@ -103,7 +120,6 @@ export default function Assignments() {
                   </p>
                 </div>
 
-                {/* ✅ Delete Button (Trash Icon) */}
                 <Button
                   variant="outline-danger"
                   size="sm"
@@ -120,7 +136,6 @@ export default function Assignments() {
         </ListGroupItem>
       </ListGroup>
 
-      {/* ✅ Confirmation Dialog */}
       <Modal show={showConfirm} onHide={() => setShowConfirm(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Delete Assignment</Modal.Title>

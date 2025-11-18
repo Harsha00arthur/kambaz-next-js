@@ -22,7 +22,7 @@ interface ModulesState {
 
 // ✅ Initial state
 const initialState: ModulesState = {
-  modules: dbModules as Module[],
+  modules: [],
 };
 
 // ✅ Slice definition
@@ -30,6 +30,9 @@ const modulesSlice = createSlice({
   name: "modules",
   initialState,
   reducers: {
+    setModules: (state, action) => {
+      state.modules = action.payload;
+    },
     addModule: (state, action: PayloadAction<{ name: string; course: string }>) => {
       const newModule: Module = {
         _id: uuidv4(),
@@ -61,6 +64,6 @@ const modulesSlice = createSlice({
 });
 
 // ✅ Export actions and reducer
-export const { addModule, deleteModule, updateModule, editModule } =
+export const { addModule, deleteModule, updateModule, editModule, setModules } =
   modulesSlice.actions;
 export default modulesSlice.reducer;

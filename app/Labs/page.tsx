@@ -18,8 +18,12 @@ export default function Labs() {
            Lab 3: JavaScript Fundamentals </Link>
        </li>
        <li>
-         <Link href="/Labs/Lab4" id="wd-lab3-link">
+         <Link href="/Labs/Lab4" id="wd-lab4-link">
            Lab 4: Redux React Applications </Link>
+       </li>
+       <li>
+         <Link href="/Labs/Lab5" id="wd-lab5-link">
+           Lab 5: RESTful Web APIs with Express.js </Link>
        </li>
        <li>
        <Link href="/" id="wd-lab3-link">

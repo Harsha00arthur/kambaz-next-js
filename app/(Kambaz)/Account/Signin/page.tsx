@@ -1,22 +1,15 @@
 "use client";
+import * as client from "../client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { setCurrentUser } from "../reducer";
 import { useDispatch } from "react-redux";
 import { useState } from "react";
-import * as db from "../../Database";
 import { FormControl, Button } from "react-bootstrap";
 
 interface Credentials {
   username: string;
   password: string;
-}
-
-interface User {
-  _id: string;
-  username: string;
-  password: string;
-  [key: string]: unknown; // ✅ allows extra user fields from db safely
 }
 
 export default function Signin() {
@@ -27,15 +20,19 @@ export default function Signin() {
   const dispatch = useDispatch();
   const router = useRouter();
 
-  const signin = () => {
-    const user = db.users.find(
-      (u: User) =>
-        u.username === credentials.username &&
-        u.password === credentials.password
-    );
-    if (!user) return;
-    dispatch(setCurrentUser(user));
-    router.push("/Dashboard");
+  const signin = async () => {
+    try {
+      const user = await client.signin(credentials);
+      dispatch(setCurrentUser(user));
+      router.push("/Dashboard");
+    } catch (error: unknown) {
+      if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as { response?: { data?: { message?: string } } };
+        alert(axiosError.response?.data?.message || "Signin failed");
+      } else {
+        alert("Signin failed");
+      }
+    }
   };
 
   return (
@@ -43,7 +40,7 @@ export default function Signin() {
       <h2 className="mb-3">Signin</h2>
 
       <FormControl
-        defaultValue={credentials.username}
+        value={credentials.username}   // ← FIXED
         onChange={(e) =>
           setCredentials({ ...credentials, username: e.target.value })
         }
@@ -53,7 +50,7 @@ export default function Signin() {
       />
 
       <FormControl
-        defaultValue={credentials.password}
+        value={credentials.password}   // ← FIXED
         onChange={(e) =>
           setCredentials({ ...credentials, password: e.target.value })
         }
