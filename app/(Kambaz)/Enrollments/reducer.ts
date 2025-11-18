@@ -16,27 +16,45 @@ const enrollmentsSlice = createSlice({
   name: "enrollments",
   initialState,
   reducers: {
+    // -------------------------
+    // Add one enrollment locally
+    // -------------------------
     enrollCourse: (
       state,
       action: PayloadAction<{ user: string; course: string }>
     ) => {
       const { user, course } = action.payload;
+
       const exists = state.enrollments.some(
         (e) => e.user === user && e.course === course
       );
+
       if (!exists) {
-        state.enrollments.push({ _id: `${user}-${course}`, user, course });
+        state.enrollments.push({
+          _id: `${user}-${course}`,
+          user,
+          course,
+        });
       }
     },
+
+    // -------------------------
+    // Remove one enrollment locally
+    // -------------------------
     unenrollCourse: (
       state,
       action: PayloadAction<{ user: string; course: string }>
     ) => {
       const { user, course } = action.payload;
+
       state.enrollments = state.enrollments.filter(
         (e) => !(e.user === user && e.course === course)
       );
     },
+
+    // -------------------------
+    // Set full enrollment list
+    // -------------------------
     setEnrollments: (state, action: PayloadAction<Enrollment[]>) => {
       state.enrollments = action.payload;
     },
@@ -45,4 +63,5 @@ const enrollmentsSlice = createSlice({
 
 export const { enrollCourse, unenrollCourse, setEnrollments } =
   enrollmentsSlice.actions;
+
 export default enrollmentsSlice.reducer;
