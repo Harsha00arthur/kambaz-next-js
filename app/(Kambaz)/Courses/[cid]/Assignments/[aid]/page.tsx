@@ -8,12 +8,11 @@ import {
 } from "../../Assignments/reducer";
 import { RootState } from "../../../../store";
 import { useState, useEffect } from "react";
-import { v4 as uuidv4 } from "uuid";
 
 import * as client from "../../Assignments/client";
 
 type AssignmentType = {
-  _id: string;
+  _id?: string;
   title: string;
   course: string;
   description?: string;
@@ -24,7 +23,7 @@ type AssignmentType = {
 };
 
 export default function AssignmentEditor() {
-  const { cid, aid } = useParams<{ cid: string; aid: string }>();
+  const { cid, aid } = useParams<{ cid: string; aid?: string }>();
   const router = useRouter();
   const dispatch = useDispatch();
 
@@ -33,18 +32,34 @@ export default function AssignmentEditor() {
   );
 
   const existingAssignment =
-    assignments.find((a) => a._id === aid) || undefined;
+    assignments.find((a: AssignmentType) => a._id === aid) || undefined;
 
   const [assignment, setAssignment] = useState<AssignmentType>({
-    _id: existingAssignment?._id || uuidv4(),
+    _id: existingAssignment?._id,
     title: existingAssignment?.title || "",
-    course: existingAssignment?.course || cid,
+    course: existingAssignment?.course || (cid as string),
     description: existingAssignment?.description || "",
     points: existingAssignment?.points || 0,
     dueDate: existingAssignment?.dueDate || "",
     availableFromDate: existingAssignment?.availableFromDate || "",
     availableUntilDate: existingAssignment?.availableUntilDate || "",
   });
+
+  // If opened directly with an aid and Redux is empty, fetch from server
+  useEffect(() => {
+    const loadAssignment = async () => {
+      if (!aid || existingAssignment) return;
+      try {
+        const fetched = await client.fetchAssignmentById(aid as string);
+        setAssignment(fetched);
+        dispatch(updateReduxAssignment(fetched));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadAssignment();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aid, existingAssignment]);
 
   useEffect(() => {
     if (existingAssignment) {
@@ -53,23 +68,25 @@ export default function AssignmentEditor() {
   }, [existingAssignment]);
 
   const handleSave = async () => {
-    let saved;
+    try {
+      let saved;
 
-    if (existingAssignment) {
-      saved = await client.updateAssignment(assignment);
-      dispatch(updateReduxAssignment(saved));
-    } else {
-      const newAssignment = {
-        ...assignment,
-        _id: uuidv4(),
-        course: cid,
-      };
+      if (assignment._id) {
+        // UPDATE existing
+        saved = await client.updateAssignment(assignment);
+        dispatch(updateReduxAssignment(saved));
+      } else {
+        // CREATE new: don't send _id, let MongoDB create it
+        const { _id, ...rest } = assignment;
+        const toCreate = { ...rest, course: cid as string };
+        saved = await client.createAssignment(cid as string, toCreate);
+        dispatch(addAssignment(saved));
+      }
 
-      saved = await client.createAssignment(cid as string, newAssignment);
-      dispatch(addAssignment(saved));
+      router.push(`/Courses/${cid}/Assignments`);
+    } catch (e) {
+      console.error(e);
     }
-
-    router.push(`/Courses/${cid}/Assignments`);
   };
 
   const handleCancel = () => {
@@ -150,7 +167,10 @@ export default function AssignmentEditor() {
 
         {/* Display Grades */}
         <div className="mb-3 row">
-          <label htmlFor="wd-display-grade-as" className="col-sm-2 col-form-label">
+          <label
+            htmlFor="wd-display-grade-as"
+            className="col-sm-2 col-form-label"
+          >
             Display Grades as
           </label>
           <div className="col-sm-10">
@@ -162,7 +182,10 @@ export default function AssignmentEditor() {
 
         {/* Submission Type */}
         <div className="mb-3 row">
-          <label htmlFor="wd-submission-type" className="col-sm-2 col-form-label">
+          <label
+            htmlFor="wd-submission-type"
+            className="col-sm-2 col-form-label"
+          >
             Submission Type
           </label>
           <div className="col-sm-10">
@@ -172,7 +195,13 @@ export default function AssignmentEditor() {
 
             <p className="mt-2 mb-1">Online entry option</p>
 
-            {[ "Text Entry", "Website URL", "Media Recordings", "Student Annotation", "File Upload" ].map((label, i) => (
+            {[
+              "Text Entry",
+              "Website URL",
+              "Media Recordings",
+              "Student Annotation",
+              "File Upload",
+            ].map((label, i) => (
               <div className="form-check" key={i}>
                 <input className="form-check-input" type="checkbox" id={label} />
                 <label className="form-check-label" htmlFor={label}>
@@ -219,7 +248,10 @@ export default function AssignmentEditor() {
 
         {/* Available Dates */}
         <div className="mb-3 row">
-          <label htmlFor="wd-available-from" className="col-sm-2 col-form-label">
+          <label
+            htmlFor="wd-available-from"
+            className="col-sm-2 col-form-label"
+          >
             Available from
           </label>
           <div className="col-sm-4">
@@ -237,7 +269,10 @@ export default function AssignmentEditor() {
             />
           </div>
 
-          <label htmlFor="wd-available-until" className="col-sm-2 col-form-label">
+          <label
+            htmlFor="wd-available-until"
+            className="col-sm-2 col-form-label"
+          >
             Until
           </label>
           <div className="col-sm-4">

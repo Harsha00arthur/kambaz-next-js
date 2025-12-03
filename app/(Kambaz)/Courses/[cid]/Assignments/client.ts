@@ -1,14 +1,7 @@
-import axios from "axios";
+"use client";
 
-const HTTP_SERVER = process.env.NEXT_PUBLIC_HTTP_SERVER;
-
-// Correct REST endpoints
-const COURSES_API = `${HTTP_SERVER}/api/courses`;
-const ASSIGNMENTS_API = `${HTTP_SERVER}/api/assignments`;
-
-// Assignment type
-export interface Assignment {
-  _id: string;
+export type Assignment = {
+  _id?: string;
   title: string;
   course: string;
   description?: string;
@@ -16,61 +9,81 @@ export interface Assignment {
   dueDate?: string;
   availableFromDate?: string;
   availableUntilDate?: string;
-}
-
-/* ---------------------------------------------
-   FETCH ALL assignments for a specific course
----------------------------------------------- */
-export const fetchAssignmentsByCourse = async (
-  cid: string
-): Promise<Assignment[]> => {
-  const { data } = await axios.get(`${COURSES_API}/${cid}/assignments`);
-  return data;
 };
 
-/* ---------------------------------------------
-   CREATE new assignment for a specific course
----------------------------------------------- */
+const SERVER =
+  process.env.NEXT_PUBLIC_HTTP_SERVER || "http://localhost:4000";
+
+// GET all assignments for a course
+export const fetchAssignmentsByCourse = async (cid: string): Promise<Assignment[]> => {
+  const response = await fetch(`${SERVER}/api/courses/${cid}/assignments`, {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch assignments");
+  }
+  return response.json();
+};
+
+// GET one assignment by id
+export const fetchAssignmentById = async (aid: string): Promise<Assignment> => {
+  const response = await fetch(`${SERVER}/api/assignments/${aid}`, {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch assignment");
+  }
+  return response.json();
+};
+
+// CREATE new assignment for a course
 export const createAssignment = async (
   cid: string,
-  assignment: Assignment
+  assignment: Omit<Assignment, "_id">
 ): Promise<Assignment> => {
-  const { data } = await axios.post(
-    `${COURSES_API}/${cid}/assignments`,
-    assignment
-  );
-  return data;
+  const response = await fetch(`${SERVER}/api/courses/${cid}/assignments`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(assignment),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to create assignment");
+  }
+  return response.json();
 };
 
-/* ---------------------------------------------
-   FETCH one assignment
----------------------------------------------- */
-export const fetchAssignmentById = async (
-  aid: string
-): Promise<Assignment> => {
-  const { data } = await axios.get(`${ASSIGNMENTS_API}/${aid}`);
-  return data;
-};
-
-/* ---------------------------------------------
-   UPDATE one assignment
----------------------------------------------- */
+// UPDATE existing assignment
 export const updateAssignment = async (
   assignment: Assignment
 ): Promise<Assignment> => {
-  const { data } = await axios.put(
-    `${ASSIGNMENTS_API}/${assignment._id}`,
-    assignment
+  if (!assignment._id) {
+    throw new Error("Assignment _id is required for update");
+  }
+  const response = await fetch(
+    `${SERVER}/api/assignments/${assignment._id}`,
+    {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(assignment),
+    }
   );
-  return data;
+  if (!response.ok) {
+    throw new Error("Failed to update assignment");
+  }
+  return response.json();
 };
 
-/* ---------------------------------------------
-   DELETE assignment
----------------------------------------------- */
-export const deleteAssignment = async (
-  aid: string
-): Promise<{ success: boolean }> => {
-  const { data } = await axios.delete(`${ASSIGNMENTS_API}/${aid}`);
-  return data;
+// DELETE assignment
+export const deleteAssignment = async (aid: string): Promise<boolean> => {
+  const response = await fetch(`${SERVER}/api/assignments/${aid}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to delete assignment");
+  }
+  const result = await response.json();
+  return !!result.success;
 };

@@ -3,14 +3,7 @@ import * as client from "../Courses/client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  setCourses
-} from "../Courses/reducer";
-
-import {
-  enrollCourse,
-  unenrollCourse,
-} from "../Enrollments/reducer";
+import { setCourses } from "../Courses/reducer";
 
 import { RootState } from "../store";
 
@@ -27,7 +20,7 @@ import {
 } from "react-bootstrap";
 
 /* ----------------------------------------------------------
-   FIXED LocalCourse type (ESLint + TS friendly)
+   LocalCourse type
 ---------------------------------------------------------- */
 interface LocalCourse {
   _id: string;
@@ -37,7 +30,7 @@ interface LocalCourse {
   endDate: string;
   image: string;
   description: string;
-  [key: string]: unknown; // allows extra fields, no eslint error
+  [key: string]: unknown; // allows extra fields
 }
 
 /* ----------------------------------------------------------
@@ -53,9 +46,6 @@ export default function Dashboard() {
   const dispatch = useDispatch();
 
   const { courses } = useSelector((state: RootState) => state.coursesReducer);
-  const { enrollments } = useSelector(
-    (state: RootState) => state.enrollmentsReducer
-  );
   const { currentUser } = useSelector(
     (state: RootState) => state.accountReducer as { currentUser: User | null }
   );
@@ -74,7 +64,12 @@ export default function Dashboard() {
   });
 
   /* ----------------------------------------------------------
-     Add New Course
+     Track which courses THIS user is enrolled in (by _id)
+  ---------------------------------------------------------- */
+  const [myCourseIds, setMyCourseIds] = useState<string[]>([]);
+
+  /* ----------------------------------------------------------
+     Faculty: Add New Course
   ---------------------------------------------------------- */
   const onAddNewCourse = async () => {
     const newCourse = await client.createCourse(course);
@@ -82,7 +77,7 @@ export default function Dashboard() {
   };
 
   /* ----------------------------------------------------------
-     Delete Course
+     Faculty: Delete Course
   ---------------------------------------------------------- */
   const onDeleteCourse = async (courseId: string) => {
     await client.deleteCourse(courseId);
@@ -90,7 +85,7 @@ export default function Dashboard() {
   };
 
   /* ----------------------------------------------------------
-     Update Course
+     Faculty: Update Course
   ---------------------------------------------------------- */
   const onUpdateCourse = async () => {
     await client.updateCourse(course);
@@ -102,7 +97,7 @@ export default function Dashboard() {
   };
 
   /* ----------------------------------------------------------
-     Fetch ALL courses (not only enrolled)
+     Fetch ALL courses (for the grid)
   ---------------------------------------------------------- */
   const fetchCourses = async () => {
     try {
@@ -113,22 +108,37 @@ export default function Dashboard() {
     }
   };
 
+  /* ----------------------------------------------------------
+     Fetch MY courses (enrolled) from the server
+     Uses the new client function: findMyCourses()
+  ---------------------------------------------------------- */
+  const fetchMyCourses = async () => {
+    if (!currentUser) {
+      setMyCourseIds([]);
+      return;
+    }
+    try {
+      const myCourses = await client.findMyCourses();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setMyCourseIds(myCourses.map((c: any) => c._id));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   useEffect(() => {
     fetchCourses();
+    fetchMyCourses();
   }, [currentUser]);
 
   /* ----------------------------------------------------------
-     Enrollment Logic
+     Enrollment Logic (based on myCourseIds)
   ---------------------------------------------------------- */
   const [showAll, setShowAll] = useState(false);
   const isFaculty = currentUser?.role === "FACULTY";
-
   const userId = currentUser?._id ?? "";
 
-  const userEnrollments = enrollments.filter((e) => e.user === userId);
-
-  const isEnrolled = (courseId: string) =>
-    userEnrollments.some((e) => e.course === courseId);
+  const isEnrolled = (courseId: string) => myCourseIds.includes(courseId);
 
   /* ----------------------------------------------------------
      Filter Courses: Enrolled OR All
@@ -139,15 +149,32 @@ export default function Dashboard() {
 
   /* ----------------------------------------------------------
      Enrollment button handlers
+     Uses new client functions:
+       - enrollIntoCourse(userId, courseId)
+       - unenrollFromCourse(userId, courseId)
   ---------------------------------------------------------- */
-  const handleEnroll = (courseId: string) => {
+  const handleEnroll = async (courseId: string) => {
     if (!userId) return;
-    dispatch(enrollCourse({ user: userId, course: courseId }));
+    try {
+      await client.enrollIntoCourse(userId, courseId);
+      // Optimistically update local list
+      setMyCourseIds((prev) =>
+        prev.includes(courseId) ? prev : [...prev, courseId]
+      );
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleUnenroll = (courseId: string) => {
+  const handleUnenroll = async (courseId: string) => {
     if (!userId) return;
-    dispatch(unenrollCourse({ user: userId, course: courseId }));
+    try {
+      await client.unenrollFromCourse(userId, courseId);
+      // Optimistically update local list
+      setMyCourseIds((prev) => prev.filter((id) => id !== courseId));
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   /* ----------------------------------------------------------
@@ -247,6 +274,7 @@ export default function Dashboard() {
                     </Button>
                   )}
 
+                  {/* ENROLL / UNENROLL BUTTONS (wired to DB) */}
                   {isEnrolled(c._id) ? (
                     <Button
                       variant="danger"
@@ -271,7 +299,7 @@ export default function Dashboard() {
                     <>
                       <button
                         id="wd-edit-course-click"
-                        onClick={() => setCourse(c as LocalCourse)} // ✅ FIXED CAST
+                        onClick={() => setCourse(c as LocalCourse)}
                         className="btn btn-warning me-2 float-end"
                       >
                         Edit

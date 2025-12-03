@@ -44,23 +44,31 @@ export default function Modules() {
   const [moduleName, setModuleName] = useState("");
 
   /* ---------------- REMOVE MODULE ---------------- */
-  const onRemoveModule = async (moduleId: string) => {
-    await client.deleteModule(moduleId);
+ const onRemoveModule = async (moduleId: string) => {
+  if (!cid) return;
+  await client.deleteModule(cid as string, moduleId);
 
-    const updated = reduxModules.filter((m: UIModule) => m._id !== moduleId);
-    dispatch(setModules(updated));
-  };
+  dispatch(
+    setModules(
+      reduxModules.filter((m: UIModule) => m._id !== moduleId)
+    )
+  );
+};
+
 
   /* ---------------- UPDATE MODULE ---------------- */
   const onUpdateModule = async (module: UIModule) => {
-    await client.updateModule(module);
+  if (!cid) return;
 
-    const updated = reduxModules.map((m: UIModule) =>
-      m._id === module._id ? module : m
-    );
+  await client.updateModule(cid as string, module);
 
-    dispatch(setModules(updated));
-  };
+  const newModules = reduxModules.map((m: UIModule) =>
+    m._id === module._id ? module : m
+  );
+
+  dispatch(setModules(newModules));
+};
+
 
   /* ---------------- CREATE MODULE ---------------- */
   const onCreateModuleForCourse = async () => {
