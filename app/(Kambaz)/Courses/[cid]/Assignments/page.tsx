@@ -11,7 +11,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../../store";
 
 import {
-  deleteAssignment,
+  deleteAssignment as deleteReduxAssignment,
   setAssignments,
 } from "../Assignments/reducer";
 
@@ -19,15 +19,14 @@ import * as client from "../Assignments/client";
 import { useState, useEffect } from "react";
 
 interface Assignment {
-  _id: string;
+  _id?: string;
   title: string;
   course: string;
-  available?: string;
-  due?: string;
-  points?: number;
   availableFromDate?: string;
   availableUntilDate?: string;
   dueDate?: string;
+  points?: number;
+  description?: string;
 }
 
 export default function Assignments() {
@@ -44,17 +43,20 @@ export default function Assignments() {
   const [selectedAssignment, setSelectedAssignment] =
     useState<Assignment | null>(null);
 
-  // ----------------------------------------------------
-  // Load assignments for THIS course
-  // ----------------------------------------------------
+  // Load assignments from MongoDB for this course
   const loadAssignments = async () => {
     if (!cid) return;
-    const data = await client.fetchAssignmentsByCourse(cid as string);
-    dispatch(setAssignments(data));
+    try {
+      const data = await client.fetchAssignmentsByCourse(cid as string);
+      dispatch(setAssignments(data));
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   useEffect(() => {
     loadAssignments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cid]);
 
   const handleDelete = (assignment: Assignment) => {
@@ -63,9 +65,13 @@ export default function Assignments() {
   };
 
   const confirmDelete = async () => {
-    if (selectedAssignment) {
-      await client.deleteAssignment(selectedAssignment._id);
-      dispatch(deleteAssignment(selectedAssignment._id));
+    if (selectedAssignment?._id) {
+      try {
+        await client.deleteAssignment(selectedAssignment._id);
+        dispatch(deleteReduxAssignment(selectedAssignment._id));
+      } catch (e) {
+        console.error(e);
+      }
     }
     setShowConfirm(false);
   };
@@ -106,12 +112,14 @@ export default function Assignments() {
               >
                 <div className="flex-grow-1">
                   <BsGripVertical className="me-2 fs-3" />
+
                   <Link
                     href={`/Courses/${cid}/Assignments/${a._id}`}
                     className="wd-assignment-link fw-bold"
                   >
                     {a.title}
                   </Link>
+
                   <p className="mb-0 text-muted small">
                     <span className="text-danger">Multiple modules</span> |{" "}
                     <b>Not available until</b>{" "}

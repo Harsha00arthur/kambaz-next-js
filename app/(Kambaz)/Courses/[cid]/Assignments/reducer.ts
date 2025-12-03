@@ -1,59 +1,42 @@
-"use client";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import * as db from "../../../Database";
+import type { Assignment } from "./client";
 
-// ✅ Unified Assignment interface (matches components)
-export interface Assignment {
-  _id: string;
-  title: string;
-  course: string;
-  description?: string;
-  points?: number;
-  dueDate?: string;
-  availableFromDate?: string;
-  availableUntilDate?: string;
+interface AssignmentsState {
+  assignments: Assignment[];
 }
 
-// ✅ Initial state from database
-const initialState: { assignments: Assignment[] } = {
-  assignments: db.assignments as Assignment[],
+const initialState: AssignmentsState = {
+  assignments: [],
 };
 
-// ✅ Slice
 const assignmentsSlice = createSlice({
   name: "assignments",
   initialState,
   reducers: {
-    addAssignment: (state, action: PayloadAction<Assignment>) => {
+    setAssignments(state, action: PayloadAction<Assignment[]>) {
+      state.assignments = action.payload;
+    },
+    addAssignment(state, action: PayloadAction<Assignment>) {
       state.assignments.push(action.payload);
     },
-    updateAssignment: (state, action: PayloadAction<Assignment>) => {
-      const index = state.assignments.findIndex(
-        (a) => a._id === action.payload._id
+    updateAssignment(state, action: PayloadAction<Assignment>) {
+      state.assignments = state.assignments.map((a) =>
+        a._id === action.payload._id ? action.payload : a
       );
-      if (index !== -1) {
-        state.assignments[index] = {
-          ...state.assignments[index],
-          ...action.payload,
-        };
-      }
     },
-    deleteAssignment: (state, action: PayloadAction<string>) => {
+    deleteAssignment(state, action: PayloadAction<string>) {
       state.assignments = state.assignments.filter(
         (a) => a._id !== action.payload
       );
-    },
-    setAssignments: (state, action: PayloadAction<Assignment[]>) => {
-      state.assignments = action.payload;
     },
   },
 });
 
 export const {
+  setAssignments,
   addAssignment,
   updateAssignment,
   deleteAssignment,
-  setAssignments,
 } = assignmentsSlice.actions;
 
 export default assignmentsSlice.reducer;

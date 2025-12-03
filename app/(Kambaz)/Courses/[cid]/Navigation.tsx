@@ -5,7 +5,7 @@ import { ListGroup } from "react-bootstrap";
 import { usePathname } from "next/navigation";
 
 interface CourseNavigationProps {
-  cid: string; 
+  cid: string;
 }
 
 export default function CourseNavigation({ cid }: CourseNavigationProps) {
@@ -19,13 +19,16 @@ export default function CourseNavigation({ cid }: CourseNavigationProps) {
     { label: "Assignments", path: `/Courses/${cid}/Assignments` },
     { label: "Quizzes", path: "https://northeastern.instructure.com/courses/225988/quizzes", external: true },
     { label: "Grades", path: "https://northeastern.instructure.com/courses/225988/grades", external: true },
-    { label: "People", path: `/Courses/${cid}/People/Table` },
+
+    // ⭐ FIXED: People route should go to /Courses/${cid}/People
+    { label: "People", path: `/Courses/${cid}/People` },
   ];
 
   return (
     <ListGroup id="wd-courses-navigation" className="wd list-group fs-5 rounded-0">
       {links.map((link) => {
-        const isActive = pathname === link.path || pathname.includes(link.label);
+        const isActive =
+          pathname === link.path || pathname.includes(link.label);
 
         return link.external ? (
           <ListGroup.Item
@@ -35,7 +38,9 @@ export default function CourseNavigation({ cid }: CourseNavigationProps) {
             href={link.path}
             target="_blank"
             rel="noopener noreferrer"
-            className={`list-group-item ${isActive ? "active" : "text-danger"} border-0`}
+            className={`list-group-item ${
+              isActive ? "active" : "text-danger"
+            } border-0`}
           >
             {link.label}
           </ListGroup.Item>
@@ -45,7 +50,9 @@ export default function CourseNavigation({ cid }: CourseNavigationProps) {
             action
             as={Link}
             href={link.path}
-            className={`list-group-item ${isActive ? "active" : "text-danger"} border-0`}
+            className={`list-group-item ${
+              isActive ? "active" : "text-danger"
+            } border-0`}
           >
             {link.label}
           </ListGroup.Item>
