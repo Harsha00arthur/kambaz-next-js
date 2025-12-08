@@ -17,7 +17,7 @@ export default function CourseNavigation({ cid }: CourseNavigationProps) {
     { label: "Piazza", path: "https://piazza.com/northeastern", external: true },
     { label: "Zoom", path: "https://www.zoom.com/", external: true },
     { label: "Assignments", path: `/Courses/${cid}/Assignments` },
-    { label: "Quizzes", path: "https://northeastern.instructure.com/courses/225988/quizzes", external: true },
+    { label: "Quizzes", path: `/Courses/${cid}/Quizzes` },
     { label: "Grades", path: "https://northeastern.instructure.com/courses/225988/grades", external: true },
 
     // ⭐ FIXED: People route should go to /Courses/${cid}/People
