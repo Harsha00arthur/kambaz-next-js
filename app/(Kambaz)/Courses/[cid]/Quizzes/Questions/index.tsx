@@ -44,7 +44,7 @@ export default function Questions() {
 
   const handleAddQuestion = () => {
     router.push(
-      `/(Kambaz)/Courses/${cid}/Quizzes/${qid}/Questions/new`
+      `/Courses/${cid}/Quizzes/${qid}/Questions/new`
     );
   };
 
@@ -176,7 +176,7 @@ export default function Questions() {
                     <div className="question-header text-black fs-4 mb-1">
                       {isFaculty ? (
                         <Link
-                          href={`/(Kambaz)/Courses/${cid}/Quizzes/${qid}/Questions/${question._id}`}
+                          href={`/Courses/${cid}/Quizzes/${qid}/Questions/${question._id}`}
                           className="text-danger text-decoration-none"
                         >
                           {question.title}
@@ -220,7 +220,7 @@ export default function Questions() {
                         <Dropdown.Item
                           onClick={() =>
                             router.push(
-                              `/(Kambaz)/Courses/${cid}/Quizzes/${qid}/Questions/${question._id}`
+                              `/Courses/${cid}/Quizzes/${qid}/Questions/${question._id}`
                             )
                           }
                         >

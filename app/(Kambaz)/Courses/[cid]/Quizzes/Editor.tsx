@@ -1,5 +1,8 @@
 "use client";
 
+import type React from "react";
+import type { JSX } from "react";
+
 import {
   Row,
   Col,
@@ -22,6 +25,20 @@ import Editor from "./Questions/Editor";
 
 import { useParams, useRouter } from "next/navigation";
 
+// --- Typed wrapper around Editor so we don't use `any` ---
+interface DescriptionEditorProps {
+  className?: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+}
+
+type DescriptionEditorComponent = (
+  props: DescriptionEditorProps
+) => JSX.Element;
+
+const DescriptionEditor = Editor as unknown as DescriptionEditorComponent;
+// ----------------------------------------------------------
+
 export default function QuizEditor() {
   const params = useParams();
   const cid = params?.cid as string;
@@ -32,7 +49,7 @@ export default function QuizEditor() {
 
   const quizzes = useSelector(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (state: any) => state.quizzesReducer?.quizzes ?? []
+    (state: unknown | any) => state.quizzesReducer?.quizzes ?? []
   );
   const existingQuiz = quizzes.find((a: Quiz) => a._id === qid);
   const isNewQuiz = qid === "new" || !existingQuiz;
@@ -80,8 +97,7 @@ export default function QuizEditor() {
 
   const formatDate = (iso: string) => iso?.split?.("T")?.[0] || "";
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleInputChange = (field: keyof Quiz, value: any) => {
+  const handleInputChange = (field: keyof Quiz, value: unknown) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -100,7 +116,8 @@ export default function QuizEditor() {
         return;
       }
       const num = Number(raw);
-      if (!Number.isInteger(num) || num <= 0) {
+      const valid = Number.isFinite(num) && Number.isInteger(num) && num > 0;
+      if (!valid) {
         alert("Please enter a whole number greater than 0.");
         setFormData((prev) => ({
           ...prev,
@@ -129,9 +146,13 @@ export default function QuizEditor() {
       return;
     }
 
-    if (formData.multipleAttempts && (!formData.maxAttempts || formData.maxAttempts <= 0)) {
-      alert("Please provide a valid 'Maximum Attempts' (> 0).");
-      return;
+    if (formData.multipleAttempts) {
+      const n = Number(formData.maxAttempts);
+      const valid = Number.isFinite(n) && Number.isInteger(n) && n > 0;
+      if (!valid) {
+        alert("Please provide a valid 'Maximum Attempts' (> 0).");
+        return;
+      }
     }
 
     const quizData: Quiz = {
@@ -150,12 +171,15 @@ export default function QuizEditor() {
       shuffleAnswers: formData.shuffleAnswers ?? true,
       timeLimit: Number(formData.timeLimit) || 20,
       multipleAttempts: formData.multipleAttempts ?? false,
-      maxAttempts: formData.multipleAttempts ? Number(formData.maxAttempts) : undefined,
+      maxAttempts: formData.multipleAttempts
+        ? Number(formData.maxAttempts)
+        : undefined,
       showCorrectAnswers: formData.showCorrectAnswers || "After Due Date",
       accessCode: formData.accessCode || "",
       oneQuestionAtATime: formData.oneQuestionAtATime ?? true,
       webcamRequired: formData.webcamRequired ?? false,
-      lockQuestionsAfterAnswering: formData.lockQuestionsAfterAnswering ?? false,
+      lockQuestionsAfterAnswering:
+        formData.lockQuestionsAfterAnswering ?? false,
       published: publish ? true : (formData.published ?? false),
     };
 
@@ -170,7 +194,7 @@ export default function QuizEditor() {
         setFormData(updated);
       }
 
-      router.push(`/(Kambaz)/Courses/${cid}/Quizzes`);
+      router.push(`/Courses/${cid}/Quizzes`);
     } catch (err) {
       console.error("Error saving quiz:", err);
       alert("Failed to save quiz.");
@@ -178,7 +202,7 @@ export default function QuizEditor() {
   };
 
   const handleCancel = () => {
-    router.push(`/(Kambaz)/Courses/${cid}/Quizzes`);
+    router.push(`/Courses/${cid}/Quizzes`);
   };
 
   if (!isNewQuiz && !existingQuiz) {
@@ -189,6 +213,7 @@ export default function QuizEditor() {
     <div id="wd-quizzes-editor" className="container mt-4">
       <Tabs defaultActiveKey="details" className="mb-4 text-danger">
         <Tab eventKey="details" title="Details" className="text-danger">
+          {/* Quiz Name */}
           <Form.Group className="mb-3" controlId="wd-quiz-name">
             <Form.Label>Quiz Title</Form.Label>
             <Form.Control
@@ -198,18 +223,19 @@ export default function QuizEditor() {
             />
           </Form.Group>
 
+          {/* Quiz Instructions */}
           <Form.Group className="mb-3" controlId="wd-quiz-description">
             <Form.Label>Quiz Description</Form.Label>
-
-            {(Editor as any)({
-              className: "text-dark",
-              value: formData.description || "",
-              onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                handleInputChange("description", e.target.value),
-            })}
-
+            <DescriptionEditor
+              className="text-dark"
+              value={formData.description || ""}
+              onChange={(e) =>
+                handleInputChange("description", e.target.value)
+              }
+            />
           </Form.Group>
 
+          {/* Quiz Type */}
           <Form.Group as={Row} className="mb-3" controlId="wd-quiz-type">
             <Form.Label column sm="2" className="text-end">
               Quiz Type
@@ -229,8 +255,7 @@ export default function QuizEditor() {
             </Col>
           </Form.Group>
 
-
-
+          {/* Points */}
           <Form.Group as={Row} className="mb-3" controlId="wd-points">
             <Form.Label column sm="2" className="text-end">
               Points
@@ -246,6 +271,7 @@ export default function QuizEditor() {
             </Col>
           </Form.Group>
 
+          {/* Assignment Group */}
           <Form.Group
             as={Row}
             className="mb-3"
@@ -269,6 +295,7 @@ export default function QuizEditor() {
             </Col>
           </Form.Group>
 
+          {/* Display Grade */}
           <Form.Group
             as={Row}
             className="mb-3"
@@ -291,6 +318,7 @@ export default function QuizEditor() {
             </Col>
           </Form.Group>
 
+          {/* Quiz Options */}
           <Form.Group as={Row} className="mb-3" controlId="wd-quiz-options">
             <Form.Label column sm="2" className="text-end">
               Quiz Options
@@ -396,6 +424,7 @@ export default function QuizEditor() {
             </Col>
           </Form.Group>
 
+          {/* Assign Section */}
           <Form.Group as={Row} className="mb-3" controlId="wd-assign">
             <Form.Label column sm="2" className="text-end">
               Assign
@@ -409,7 +438,9 @@ export default function QuizEditor() {
                   <Form.Control
                     type="text"
                     value={formData.assignTo}
-                    onChange={(e) => handleInputChange("assignTo", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("assignTo", e.target.value)
+                    }
                   />
 
                   <br />
@@ -420,7 +451,9 @@ export default function QuizEditor() {
                     <Form.Control
                       type="date"
                       value={formatDate(formData.due || "")}
-                      onChange={(e) => handleInputChange("due", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("due", e.target.value)
+                      }
                     />
                     <InputGroup.Text>
                       <IoCalendarOutline />
@@ -473,6 +506,7 @@ export default function QuizEditor() {
             </Col>
           </Form.Group>
 
+          {/* Buttons */}
           <hr />
           <div className="float-end">
             <Button variant="secondary" onClick={handleCancel}>

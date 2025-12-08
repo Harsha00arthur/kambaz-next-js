@@ -53,12 +53,12 @@ export default function Quizzes() {
     : quizzes.filter((quiz: Quiz) => quiz.published);
 
   const handleAddQuiz = () => {
-    router.push(`/(Kambaz)/Courses/${courseId}/Quizzes/new`);
+    router.push(`/Courses/${courseId}/Quizzes/new`);
   };
 
   const handleTakeQuiz = (quizId: string) => {
     router.push(
-      `/(Kambaz)/Courses/${courseId}/Quizzes/${quizId}/Preview`
+      `/Courses/${courseId}/Quizzes/${quizId}/Preview`
     );
   };
 
@@ -197,7 +197,7 @@ export default function Quizzes() {
                   <div className="quiz-header text-black fs-4 mb-1">
                     {isFaculty ? (
                       <Link
-                        href={`/(Kambaz)/Courses/${courseId}/Quizzes/${quiz._id}/Details`}
+                        href={`/Courses/${courseId}/Quizzes/${quiz._id}/Details`}
                         className="text-danger text-decoration-none"
                       >
                         {quiz.title}
@@ -240,7 +240,7 @@ export default function Quizzes() {
                         <Dropdown.Item
                           onClick={() =>
                             router.push(
-                              `/(Kambaz)/Courses/${courseId}/Quizzes/${quiz._id}`
+                              `/Courses/${courseId}/Quizzes/${quiz._id}`
                             )
                           }
                         >

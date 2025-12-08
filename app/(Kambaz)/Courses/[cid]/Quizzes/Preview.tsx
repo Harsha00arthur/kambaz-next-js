@@ -300,7 +300,7 @@ export default function QuizPreview() {
                         <div className="mt-3">
                             <Button
                                 variant="primary"
-                                onClick={() => router.push(`/(Kambaz)/Courses/${cid}/Quizzes/${qid}/Questions`)}
+                                onClick={() => router.push(`/Courses/${cid}/Quizzes/${qid}/Questions`)}
                             >
                                 <FaEdit className="me-1" />
                                 Go to Questions Editor
@@ -332,7 +332,7 @@ export default function QuizPreview() {
                             {isFaculty && (
                                 <Button
                                     variant="danger"
-                                    onClick={() => router.push(`/(Kambaz)/Courses/${cid}/Quizzes/${qid}/Questions`)}
+                                    onClick={() => router.push(`/Courses/${cid}/Quizzes/${qid}/Questions`)}
                                     className="me-2"
                                 >
                                     <FaEdit className="me-1" />
