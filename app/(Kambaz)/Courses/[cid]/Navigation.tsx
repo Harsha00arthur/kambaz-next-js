@@ -18,17 +18,21 @@ export default function CourseNavigation({ cid }: CourseNavigationProps) {
     { label: "Zoom", path: "https://www.zoom.com/", external: true },
     { label: "Assignments", path: `/Courses/${cid}/Assignments` },
     { label: "Quizzes", path: `/Courses/${cid}/Quizzes` },
-    { label: "Grades", path: "https://northeastern.instructure.com/courses/225988/grades", external: true },
-
-    // ⭐ FIXED: People route should go to /Courses/${cid}/People
+    {
+      label: "Grades",
+      path: "https://northeastern.instructure.com/courses/225988/grades",
+      external: true,
+    },
     { label: "People", path: `/Courses/${cid}/People` },
   ];
 
   return (
-    <ListGroup id="wd-courses-navigation" className="wd list-group fs-5 rounded-0">
+    <ListGroup
+      id="wd-courses-navigation"
+      className="wd list-group fs-5 rounded-0"
+    >
       {links.map((link) => {
-        const isActive =
-          pathname === link.path || pathname.includes(link.label);
+        const isActive = pathname.startsWith(link.path);
 
         return link.external ? (
           <ListGroup.Item

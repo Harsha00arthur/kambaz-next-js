@@ -20,8 +20,8 @@ export default function Details() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
-  const editor = `/(Kambaz)/Courses/${courseId}/Quizzes/${quizId}`;
-  const preview = `/(Kambaz)/Courses/${courseId}/Quizzes/${quizId}/Preview`;
+  const editor = `/Courses/${courseId}/Quizzes/${quizId}`;
+  const preview = `/Courses/${courseId}/Quizzes/${quizId}/Preview`;
 
   useEffect(() => {
     const loadQuiz = async () => {
