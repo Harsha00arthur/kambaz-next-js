@@ -3,9 +3,9 @@
 import { Button, Card, Form } from "react-bootstrap";
 import { useEffect, useState } from "react";
 import * as client from "../questionsClient";
-import dynamic from "next/dynamic";
+import { useQuill } from "react-quilljs";
+import "quill/dist/quill.snow.css";
 
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 export default function QuestionsTab({ qid }: { qid: string }) {
   const [questions, setQuestions] = useState<client.Question[]>([]);
@@ -56,6 +56,21 @@ export default function QuestionsTab({ qid }: { qid: string }) {
     setEditing(q._id!);
   };
 
+
+  const deleteQuestion = async (questionId: string) => {
+  if (!window.confirm("Delete this question?")) return;
+
+  await client.deleteQuestion(questionId);
+
+  const newQuestions = questions.filter(
+    (q) => q._id !== questionId
+  );
+
+  setQuestions(newQuestions);
+  await recomputeQuizPoints(newQuestions);
+};
+
+
   return (
     <div>
       <Button onClick={addQuestion} className="mb-3">
@@ -82,15 +97,31 @@ export default function QuestionsTab({ qid }: { qid: string }) {
           />
         ) : (
           <Card key={q._id} className="mb-2 p-3">
-            <div className="d-flex justify-content-between">
-              <div>
-                <b>{q.title}</b> — {q.points} pts
-              </div>
-              <Button size="sm" onClick={() => setEditing(q._id!)}>
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <b>{q.title}</b> — {q.points} pts
+            </div>
+
+            <div className="d-flex gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setEditing(q._id!)}
+              >
                 Edit
               </Button>
+
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => deleteQuestion(q._id!)}
+              >
+                Delete
+              </Button>
             </div>
-          </Card>
+          </div>
+        </Card>
+
         )
       )}
     </div>
@@ -108,23 +139,67 @@ function QuestionEditor({
 }) {
   const [q, setQ] = useState(question);
 
+  const { quill, quillRef } = useQuill();
+
+  useEffect(() => {
+    if (!quill) return;
+
+    quill.on("text-change", () => {
+      setQ((prev) => ({
+        ...prev,
+        question: quill.root.innerHTML,
+      }));
+    });
+
+    quill.root.innerHTML = q.question || "";
+  }, [quill]);
+
   return (
     <Card className="p-3 mb-3">
+
+      {/* ✅ TITLE */}
       <Form.Control
         className="mb-2"
+        placeholder="Question Title"
         value={q.title}
         onChange={(e) => setQ({ ...q, title: e.target.value })}
       />
 
-      <ReactQuill
-        value={q.question}
-        onChange={(v) => setQ({ ...q, question: v })}
+      {/* ✅ POINTS */}
+      <Form.Control
+        type="number"
+        className="mb-2"
+        placeholder="Points"
+        value={q.points}
+        onChange={(e) =>
+          setQ({ ...q, points: Number(e.target.value) })
+        }
       />
 
+      {/* ✅ QUESTION TYPE DROPDOWN */}
+      <Form.Select
+        className="mb-3"
+        value={q.type}
+        onChange={(e) =>
+          setQ({
+            ...q,
+            type: e.target.value as "MCQ" | "TRUE_FALSE" | "FILL_BLANK",
+          })
+        }
+      >
+        <option value="MCQ">Multiple Choice</option>
+        <option value="TRUE_FALSE">True / False</option>
+        <option value="FILL_BLANK">Fill in the Blank</option>
+      </Form.Select>
+
+      {/* ✅ WYSIWYG QUESTION */}
+      <div ref={quillRef} className="mb-3" />
+
+      {/* ✅ MULTIPLE CHOICE */}
       {q.type === "MCQ" && (
         <>
           {q.choices?.map((c, i) => (
-            <div key={i} className="d-flex gap-2 mt-2">
+            <div key={i} className="d-flex gap-2 mt-2 align-items-center">
               <Form.Check
                 type="radio"
                 checked={q.correctChoice === i}
@@ -140,17 +215,104 @@ function QuestionEditor({
                   setQ({ ...q, choices: copy });
                 }}
               />
+              <Button
+                size="sm"
+                variant="outline-danger"
+                onClick={() => {
+                  const copy = [...(q.choices || [])];
+                  copy.splice(i, 1);
+                  setQ({ ...q, choices: copy });
+                }}
+              >
+                ❌
+              </Button>
             </div>
           ))}
+
+          <Button
+            size="sm"
+            className="mt-2"
+            onClick={() =>
+              setQ({
+                ...q,
+                choices: [...(q.choices || []), ""],
+              })
+            }
+          >
+            + Add Choice
+          </Button>
         </>
       )}
 
-      <div className="mt-3 d-flex gap-2">
+      {/* ✅ TRUE / FALSE */}
+      {q.type === "TRUE_FALSE" && (
+      <div className="mt-3">
+        <Form.Check
+          type="radio"
+          label="True"
+          checked={q.trueFalseAnswer === true}
+          onChange={() => setQ({ ...q, trueFalseAnswer: true })}
+        />
+        <Form.Check
+          type="radio"
+          label="False"
+          checked={q.trueFalseAnswer === false}
+          onChange={() => setQ({ ...q, trueFalseAnswer: false })}
+        />
+      </div>
+    )}
+
+
+      {/* ✅ FILL IN THE BLANK */}
+      {q.type === "FILL_BLANK" && (
+        <>
+          {(q.blanks || []).map((ans: string, i: number) => (
+            <div key={i} className="d-flex gap-2 mt-2">
+              <Form.Control
+                value={ans}
+                onChange={(e) => {
+                  const copy = [...(q.blanks || [])];
+                  copy[i] = e.target.value;
+                  setQ({ ...q, blanks: copy });
+                }}
+              />
+              <Button
+                size="sm"
+                variant="outline-danger"
+                onClick={() => {
+                  const copy = [...(q.blanks || [])];
+                  copy.splice(i, 1);
+                  setQ({ ...q, blanks: copy });
+                }}
+              >
+                ❌
+              </Button>
+            </div>
+          ))}
+
+          <Button
+            size="sm"
+            className="mt-2"
+            onClick={() =>
+              setQ({
+                ...q,
+                blanks: [...(q.blanks || []), ""],
+              })
+            }
+          >
+            + Add Answer
+          </Button>
+        </>
+      )}
+
+      {/* ✅ ACTION BUTTONS */}
+      <div className="mt-4 d-flex gap-2">
         <Button onClick={() => onSave(q)}>Save</Button>
         <Button variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
       </div>
+
     </Card>
   );
 }
