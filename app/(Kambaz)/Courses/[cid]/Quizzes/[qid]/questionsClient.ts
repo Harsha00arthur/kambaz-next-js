@@ -31,5 +31,8 @@ export const updateQuestion = async (question: Question) =>
     body: JSON.stringify(question),
   })).json();
 
-export const deleteQuestion = async (id: string) =>
-  fetch(`${SERVER}/api/questions/${id}`, { method: "DELETE" });
+export const deleteQuestion = async (id: string) =>{
+  await fetch(`${SERVER}/api/questions/${id}`, { 
+    method: "DELETE" 
+  });
+};
