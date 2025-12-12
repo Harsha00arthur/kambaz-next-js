@@ -1,82 +1,97 @@
 "use client";
 
-const SERVER = process.env.NEXT_PUBLIC_HTTP_SERVER || "http://localhost:4000";
+const SERVER = process.env.NEXT_PUBLIC_HTTP_SERVER || "http://localhost:4000";;
 
 export type Quiz = {
+  timeLimit: string;
   _id?: string;
   title: string;
   course: string;
 
   description?: string;
-  quizType?: "Graded Quiz" | "Practice Quiz" | "Graded Survey" | "Ungraded Survey";
   points?: number;
+  questionsCount?: number;
 
   availableFromDate?: string;
   availableUntilDate?: string;
   dueDate?: string;
 
   published?: boolean;
-  questionsCount?: number;
-
-  // Optional: last score for current student
+  quizType?: string;
   score?: number;
 };
 
-const courseQuizzesUrl = (cid: string) => `${SERVER}/api/courses/${cid}/quizzes`;
-const quizUrl = (qid: string) => `${SERVER}/api/quizzes/${qid}`;
+// Generic fetch wrapper
+async function jsonFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options?.headers || {}),
+    },
+  });
 
-// GET /api/courses/:cid/quizzes
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+  }
+
+  return (await res.json()) as T;
+}
+
+/* ────────────────────────────────────────────
+   FETCH QUIZZES
+────────────────────────────────────────────── */
 export async function fetchQuizzesByCourse(cid: string): Promise<Quiz[]> {
-  const res = await fetch(courseQuizzesUrl(cid), { cache: "no-store" });
-  if (!res.ok) throw new Error("Error fetching quizzes");
-  return res.json();
+  return jsonFetch<Quiz[]>(`${SERVER}/api/courses/${cid}/quizzes`);
 }
 
-// POST /api/courses/:cid/quizzes
-export async function createQuiz(cid: string, quiz: Partial<Quiz>): Promise<Quiz> {
-  const res = await fetch(courseQuizzesUrl(cid), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(quiz),
-  });
-  if (!res.ok) throw new Error("Error creating quiz");
-  return res.json();
-}
-
-// GET /api/quizzes/:qid
 export async function fetchQuizById(qid: string): Promise<Quiz> {
-  const res = await fetch(quizUrl(qid), { cache: "no-store" });
-  if (!res.ok) throw new Error("Error fetching quiz");
-  return res.json();
+  return jsonFetch<Quiz>(`${SERVER}/api/quizzes/${qid}`);
 }
 
-// PUT /api/quizzes/:qid
-export async function updateQuiz(quiz: Quiz): Promise<Quiz> {
-  if (!quiz._id) throw new Error("Quiz _id is required for update");
-  const res = await fetch(quizUrl(quiz._id), {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
+/* ────────────────────────────────────────────
+   CREATE QUIZ
+────────────────────────────────────────────── */
+export async function createQuiz(
+  cid: string,
+  quiz: Partial<Quiz>
+): Promise<Quiz> {
+  return jsonFetch<Quiz>(`${SERVER}/api/courses/${cid}/quizzes`, {
+    method: "POST",
     body: JSON.stringify(quiz),
   });
-  if (!res.ok) throw new Error("Error updating quiz");
-  return res.json();
 }
 
-// DELETE /api/quizzes/:qid
+/* ────────────────────────────────────────────
+   UPDATE QUIZ  ⭐ THIS IS THE ONE THAT WAS BROKEN
+────────────────────────────────────────────── */
+export async function updateQuiz(
+  quiz: Partial<Quiz> & { _id: string }
+): Promise<Quiz> {
+  return jsonFetch<Quiz>(`${SERVER}/api/quizzes/${quiz._id}`, {
+    method: "PUT",
+    body: JSON.stringify(quiz),
+  });
+}
+
+/* ────────────────────────────────────────────
+   DELETE QUIZ
+────────────────────────────────────────────── */
 export async function deleteQuiz(qid: string): Promise<void> {
-  const res = await fetch(quizUrl(qid), {
+  await jsonFetch(`${SERVER}/api/quizzes/${qid}`, {
     method: "DELETE",
   });
-  if (!res.ok) throw new Error("Error deleting quiz");
 }
 
-// PATCH publish / unpublish helper
-export async function togglePublish(qid: string, published: boolean): Promise<Quiz> {
-  const res = await fetch(`${quizUrl(qid)}/publish`, {
+/* ────────────────────────────────────────────
+   PUBLISH / UNPUBLISH
+────────────────────────────────────────────── */
+export async function togglePublish(
+  qid: string,
+  published: boolean
+): Promise<Quiz> {
+  return jsonFetch<Quiz>(`${SERVER}/api/quizzes/${qid}/publish`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ published }),
   });
-  if (!res.ok) throw new Error("Error toggling publish");
-  return res.json();
 }

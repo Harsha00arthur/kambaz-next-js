@@ -60,7 +60,42 @@ export default function Quizzes() {
     (state: RootState) => state.quizzesReducer?.quizzes ?? []
   ) as Quiz[];
 
-  const courseQuizzes = quizzes.filter((q) => q.course === cid);
+  const { search, sort } = useSelector(
+  (state: RootState) => state.quizzesReducer
+);
+
+let courseQuizzes = quizzes.filter((q) => q.course === cid);
+
+// 🔍 SEARCH
+if (search) {
+  courseQuizzes = courseQuizzes.filter((q) =>
+    q.title.toLowerCase().includes(search)
+  );
+}
+
+// 🔃 SORT
+if (sort === "NAME") {
+  courseQuizzes = [...courseQuizzes].sort((a, b) =>
+    a.title.localeCompare(b.title)
+  );
+}
+
+if (sort === "DUE") {
+  courseQuizzes = [...courseQuizzes].sort(
+    (a, b) =>
+      new Date(a.dueDate || "").getTime() -
+      new Date(b.dueDate || "").getTime()
+  );
+}
+
+if (sort === "AVAILABLE") {
+  courseQuizzes = [...courseQuizzes].sort(
+    (a, b) =>
+      new Date(a.availableFromDate || "").getTime() -
+      new Date(b.availableFromDate || "").getTime()
+  );
+}
+
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
@@ -85,16 +120,20 @@ export default function Quizzes() {
   };
 
   const confirmDelete = async () => {
-    if (selectedQuiz?._id) {
-      try {
-        await client.deleteQuiz(selectedQuiz._id);
-        dispatch(deleteReduxQuiz(selectedQuiz._id));
-      } catch (e) {
-        console.error(e);
-      }
-    }
+  if (!selectedQuiz?._id) return;
+
+  try {
+    dispatch(deleteReduxQuiz(selectedQuiz._id));
+
+    await client.deleteQuiz(selectedQuiz._id);
+  } catch (e) {
+    console.error(e);
+    loadQuizzes();
+  } finally {
     setShowConfirm(false);
-  };
+  }
+};
+
 
   const handleTogglePublish = async (quiz: Quiz) => {
     if (!quiz._id) return;
@@ -140,7 +179,7 @@ export default function Quizzes() {
                   <div className="flex-grow-1">
                     <BsGripVertical className="me-2 fs-3" />
 
-                    {/* ✅ Publish / Unpublish FACULTY ONLY */}
+                    {/*Publish / Unpublish FACULTY ONLY */}
                     {isFaculty && (
                       <Button
                         variant="link"
@@ -151,7 +190,7 @@ export default function Quizzes() {
                       </Button>
                     )}
 
-                    {/* ✅ Quiz Title */}
+                    {/*Quiz Title */}
                     <Link
                       href={`/Courses/${cid}/Quizzes/${q._id}`}
                       className="fw-bold text-decoration-none"

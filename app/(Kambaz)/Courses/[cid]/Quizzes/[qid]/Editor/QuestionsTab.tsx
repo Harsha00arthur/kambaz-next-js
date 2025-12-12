@@ -2,46 +2,60 @@
 
 import { Button, Card, Form } from "react-bootstrap";
 import { useEffect, useState } from "react";
-import * as client from "../questionsClient";
+import { useDispatch } from "react-redux";
 import { useQuill } from "react-quilljs";
 import "quill/dist/quill.snow.css";
 
+import * as questionClient from "../questionsClient";
+import * as quizClient from "../../client";
+import { updateQuiz as updateReduxQuiz } from "../../reducer";
 
 export default function QuestionsTab({ qid }: { qid: string }) {
-  const [questions, setQuestions] = useState<client.Question[]>([]);
+  const [questions, setQuestions] = useState<questionClient.Question[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
+  const dispatch = useDispatch();
 
-  // ✅ MUST LIVE INSIDE COMPONENT (qid is in scope here)
+  // ✅ recompute quiz points + questionsCount and sync DB + Redux
   const recomputeQuizPoints = async (
-    updatedQuestions: client.Question[]
-  ) => {
+    updatedQuestions: questionClient.Question[]
+  ): Promise<void> => {
     const totalPoints = updatedQuestions.reduce(
-      (sum, q) => sum + (q.points || 0),
+      (sum: number, q: questionClient.Question) => sum + (q.points || 0),
       0
     );
 
-    await fetch(
-      `${process.env.NEXT_PUBLIC_HTTP_SERVER}/api/quizzes/${qid}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ points: totalPoints }),
-      }
-    );
+    // 1️⃣ Fetch the existing quiz to keep all fields
+    const existingQuiz = await quizClient.fetchQuizById(qid);
+
+    if (!existingQuiz._id) {
+      // Should never happen if backend is correct, but just in case
+      return;
+    }
+
+    // 2️⃣ Update quiz in DB with new points + questionsCount
+    const updatedQuiz = await quizClient.updateQuiz({
+      _id: existingQuiz._id,
+      ...existingQuiz,
+      points: totalPoints,
+      questionsCount: updatedQuestions.length,
+    });
+
+    // 3️⃣ Update Redux store so list & details see new values
+    dispatch(updateReduxQuiz(updatedQuiz));
   };
 
   const load = async () => {
-    const data = await client.fetchQuestions(qid);
-    setQuestions(data);
-    await recomputeQuizPoints(data); // ✅ now works
-  };
+  const data = await questionClient.fetchQuestions(qid);
+  setQuestions(data);
+};
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qid]);
 
   const addQuestion = async () => {
-    const q = await client.createQuestion(qid, {
+    const q = await questionClient.createQuestion(qid, {
       type: "MCQ",
       title: "New Question",
       points: 1,
@@ -52,24 +66,19 @@ export default function QuestionsTab({ qid }: { qid: string }) {
 
     const newQuestions = [...questions, q];
     setQuestions(newQuestions);
-    await recomputeQuizPoints(newQuestions); // ✅ now works
+    await recomputeQuizPoints(newQuestions);
     setEditing(q._id!);
   };
 
-
   const deleteQuestion = async (questionId: string) => {
-  if (!window.confirm("Delete this question?")) return;
+    if (!window.confirm("Delete this question?")) return;
 
-  await client.deleteQuestion(questionId);
+    await questionClient.deleteQuestion(questionId);
 
-  const newQuestions = questions.filter(
-    (q) => q._id !== questionId
-  );
-
-  setQuestions(newQuestions);
-  await recomputeQuizPoints(newQuestions);
-};
-
+    const newQuestions = questions.filter((q) => q._id !== questionId);
+    setQuestions(newQuestions);
+    await recomputeQuizPoints(newQuestions);
+  };
 
   return (
     <div>
@@ -83,45 +92,44 @@ export default function QuestionsTab({ qid }: { qid: string }) {
             key={q._id}
             question={q}
             onSave={async (updated) => {
-              const saved = await client.updateQuestion(updated);
+              const saved = await questionClient.updateQuestion(updated);
 
               const newQuestions = questions.map((x) =>
                 x._id === saved._id ? saved : x
               );
 
               setQuestions(newQuestions);
-              await recomputeQuizPoints(newQuestions); // ✅ now works
+              await recomputeQuizPoints(newQuestions);
               setEditing(null);
             }}
             onCancel={() => setEditing(null)}
           />
         ) : (
           <Card key={q._id} className="mb-2 p-3">
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <b>{q.title}</b> — {q.points} pts
+            <div className="d-flex justify-content-between align-items-center">
+              <div>
+                <b>{q.title}</b> — {q.points} pts
+              </div>
+
+              <div className="d-flex gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setEditing(q._id!)}
+                >
+                  Edit
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => deleteQuestion(q._id!)}
+                >
+                  Delete
+                </Button>
+              </div>
             </div>
-
-            <div className="d-flex gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setEditing(q._id!)}
-              >
-                Edit
-              </Button>
-
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => deleteQuestion(q._id!)}
-              >
-                Delete
-              </Button>
-            </div>
-          </div>
-        </Card>
-
+          </Card>
         )
       )}
     </div>
@@ -133,31 +141,47 @@ function QuestionEditor({
   onSave,
   onCancel,
 }: {
-  question: client.Question;
-  onSave: (q: client.Question) => void;
+  question: questionClient.Question;
+  onSave: (q: questionClient.Question) => void;
   onCancel: () => void;
 }) {
   const [q, setQ] = useState(question);
-
-  const { quill, quillRef } = useQuill();
+  const { quill, quillRef } = useQuill({
+  modules: {
+    toolbar: [
+      ["bold", "italic", "underline", "strike"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      ["link", "image"],
+      ["clean"],
+    ],
+  },
+});
 
   useEffect(() => {
-    if (!quill) return;
+  if (!quill) return;
 
-    quill.on("text-change", () => {
-      setQ((prev) => ({
-        ...prev,
-        question: quill.root.innerHTML,
-      }));
-    });
+  quill.format("direction", "ltr");
+  quill.format("align", "left");
+  quill.root.setAttribute("dir", "ltr");
 
-    quill.root.innerHTML = q.question || "";
-  }, [quill]);
+  quill.on("text-change", () => {
+    setQ((prev) => ({
+      ...prev,
+      question: quill.root.innerHTML,
+    }));
+  });
+
+  quill.root.innerHTML = q.question || "";
+
+  return () => {
+    quill.off("text-change");
+  };
+}, [quill]);  
+
 
   return (
     <Card className="p-3 mb-3">
-
-      {/* ✅ TITLE */}
+      {/* Title */}
       <Form.Control
         className="mb-2"
         placeholder="Question Title"
@@ -165,7 +189,7 @@ function QuestionEditor({
         onChange={(e) => setQ({ ...q, title: e.target.value })}
       />
 
-      {/* ✅ POINTS */}
+      {/* Points */}
       <Form.Control
         type="number"
         className="mb-2"
@@ -176,7 +200,7 @@ function QuestionEditor({
         }
       />
 
-      {/* ✅ QUESTION TYPE DROPDOWN */}
+      {/* Type */}
       <Form.Select
         className="mb-3"
         value={q.type}
@@ -192,10 +216,10 @@ function QuestionEditor({
         <option value="FILL_BLANK">Fill in the Blank</option>
       </Form.Select>
 
-      {/* ✅ WYSIWYG QUESTION */}
+      {/* Question WYSIWYG */}
       <div ref={quillRef} className="mb-3" />
 
-      {/* ✅ MULTIPLE CHOICE */}
+      {/* MCQ choices */}
       {q.type === "MCQ" && (
         <>
           {q.choices?.map((c, i) => (
@@ -244,26 +268,25 @@ function QuestionEditor({
         </>
       )}
 
-      {/* ✅ TRUE / FALSE */}
+      {/* TRUE/FALSE */}
       {q.type === "TRUE_FALSE" && (
-      <div className="mt-3">
-        <Form.Check
-          type="radio"
-          label="True"
-          checked={q.trueFalseAnswer === true}
-          onChange={() => setQ({ ...q, trueFalseAnswer: true })}
-        />
-        <Form.Check
-          type="radio"
-          label="False"
-          checked={q.trueFalseAnswer === false}
-          onChange={() => setQ({ ...q, trueFalseAnswer: false })}
-        />
-      </div>
-    )}
+        <div className="mt-3">
+          <Form.Check
+            type="radio"
+            label="True"
+            checked={q.trueFalseAnswer === true}
+            onChange={() => setQ({ ...q, trueFalseAnswer: true })}
+          />
+          <Form.Check
+            type="radio"
+            label="False"
+            checked={q.trueFalseAnswer === false}
+            onChange={() => setQ({ ...q, trueFalseAnswer: false })}
+          />
+        </div>
+      )}
 
-
-      {/* ✅ FILL IN THE BLANK */}
+      {/* FILL BLANK */}
       {q.type === "FILL_BLANK" && (
         <>
           {(q.blanks || []).map((ans: string, i: number) => (
@@ -305,14 +328,13 @@ function QuestionEditor({
         </>
       )}
 
-      {/* ✅ ACTION BUTTONS */}
+      {/* Actions */}
       <div className="mt-4 d-flex gap-2">
         <Button onClick={() => onSave(q)}>Save</Button>
         <Button variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
       </div>
-
     </Card>
   );
 }
