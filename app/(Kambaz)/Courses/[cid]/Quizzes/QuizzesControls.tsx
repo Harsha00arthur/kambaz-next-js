@@ -3,14 +3,16 @@
 import { Button, FormControl, InputGroup, Dropdown } from "react-bootstrap";
 import { FaPlus, FaSearch } from "react-icons/fa";
 import { useParams, useRouter } from "next/navigation";
-import { useDispatch } from "react-redux";
-import { addQuiz } from "./reducer";
-import * as client from "./client";
-import { useSelector } from "react-redux";
-import { RootState } from "../../../store";
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState } from "../../../store";
 import type { User } from "../../../Account/client";
 
-
+import * as client from "./client";
+import {
+  addQuiz,
+  setSearch,
+  setSort,
+} from "./reducer";
 
 export default function QuizzesControls() {
   const { cid } = useParams<{ cid: string }>();
@@ -18,11 +20,11 @@ export default function QuizzesControls() {
   const dispatch = useDispatch();
 
   const currentUser = useSelector(
-  (state: RootState) => state.accountReducer.currentUser as User | null
-);
+    (state: RootState) => state.accountReducer.currentUser as User | null
+  );
   const isFaculty = currentUser?.role === "FACULTY";
 
-
+  // ---------------- ADD QUIZ ----------------
   const handleAddQuiz = async () => {
     if (!cid) return;
 
@@ -34,8 +36,11 @@ export default function QuizzesControls() {
         points: 0,
         questionsCount: 0,
       });
+
       dispatch(addQuiz(newQuiz));
-      router.push(`/Courses/${cid}/Quizzes/${newQuiz._id}`);
+
+      // ✅ go straight to editor
+      router.push(`/Courses/${cid}/Quizzes/${newQuiz._id}/Editor`);
     } catch (e) {
       console.error(e);
     }
@@ -46,31 +51,52 @@ export default function QuizzesControls() {
       id="wd-quizzes-controls"
       className="d-flex justify-content-between mb-3"
     >
-      {/* Search box (not fully wired, optional) */}
+      {/* 🔍 SEARCH */}
       <InputGroup style={{ maxWidth: "300px" }}>
         <InputGroup.Text>
           <FaSearch />
         </InputGroup.Text>
-        <FormControl placeholder="Search for Quizzes" />
+
+        <FormControl
+          placeholder="Search for Quizzes"
+          onChange={(e) =>
+            dispatch(setSearch(e.target.value))
+          }
+        />
       </InputGroup>
 
       <div className="d-flex gap-2">
-        {/* Optional sort dropdown */}
+        {/* 🔃 SORT */}
         <Dropdown>
           <Dropdown.Toggle variant="secondary" size="sm">
             Sort
           </Dropdown.Toggle>
+
           <Dropdown.Menu>
-            <Dropdown.Item>By Name</Dropdown.Item>
-            <Dropdown.Item>By Due Date</Dropdown.Item>
-            <Dropdown.Item>By Available Date</Dropdown.Item>
+            <Dropdown.Item
+              onClick={() => dispatch(setSort("NAME"))}
+            >
+              By Name
+            </Dropdown.Item>
+
+            <Dropdown.Item
+              onClick={() => dispatch(setSort("DUE"))}
+            >
+              By Due Date
+            </Dropdown.Item>
+
+            <Dropdown.Item
+              onClick={() => dispatch(setSort("AVAILABLE"))}
+            >
+              By Available Date
+            </Dropdown.Item>
           </Dropdown.Menu>
         </Dropdown>
 
-        {/* Add Quiz */}
+        {/* ➕ ADD QUIZ */}
         {isFaculty && (
           <Button variant="danger" onClick={handleAddQuiz}>
-          <FaPlus className="me-1" /> Quiz
+            <FaPlus className="me-1" /> Quiz
           </Button>
         )}
       </div>

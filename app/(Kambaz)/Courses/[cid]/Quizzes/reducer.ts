@@ -3,11 +3,16 @@ import type { Quiz } from "./client";
 
 type QuizzesState = {
   quizzes: Quiz[];
+  search: string;
+  sort: "NAME" | "DUE" | "AVAILABLE" | null;
 };
 
 const initialState: QuizzesState = {
   quizzes: [],
+  search: "",
+  sort: null,
 };
+
 
 const quizzesSlice = createSlice({
   name: "quizzes",
@@ -25,14 +30,33 @@ const quizzesSlice = createSlice({
         q._id === updated._id ? updated : q
       );
     },
-    deleteQuiz: (state, action: PayloadAction<string>) => {
-      const id = action.payload;
-      state.quizzes = state.quizzes.filter((q) => q._id !== id);
+    deleteQuiz(state, action: PayloadAction<string>) {
+      state.quizzes = state.quizzes.filter(
+        (q) => q._id !== action.payload
+      );
     },
+
+    setSearch(state, action: PayloadAction<string>) {
+    state.search = action.payload.toLowerCase();
+  },
+
+    setSort(state, action: PayloadAction<"NAME" | "DUE" | "AVAILABLE">) {
+      state.sort = action.payload;
+    },
+
   },
 });
 
-export const { setQuizzes, addQuiz, updateQuiz, deleteQuiz } =
-  quizzesSlice.actions;
+
+
+export const {
+  setQuizzes,
+  addQuiz,
+  updateQuiz,
+  deleteQuiz,
+  setSearch,
+  setSort,
+} = quizzesSlice.actions;
+
 
 export default quizzesSlice.reducer;

@@ -59,13 +59,19 @@ export default function QuizEditor() {
   // ---------------- ACTIONS ----------------
 
   const handleSave = async () => {
-    const saved = await client.updateQuiz(quiz);
+    const latest = await client.fetchQuizById(qid as string);
+    const saved = await client.updateQuiz({
+      ...latest,
+      ...quiz,      
+      _id: quiz._id!,
+    });
     dispatch(updateReduxQuiz(saved));
     router.push(`/Courses/${cid}/Quizzes/${qid}`);
   };
 
   const handleSaveAndPublish = async () => {
-    const saved = await client.updateQuiz({ ...quiz, published: true });
+    const latest = await client.fetchQuizById(qid as string);
+    const saved = await client.updateQuiz({ ...latest,...quiz, published: true, _id: quiz._id!, });
     dispatch(updateReduxQuiz(saved));
     router.push(`/Courses/${cid}/Quizzes`);
   };
